@@ -182,13 +182,48 @@
       </div>
     </header>
 
+    <!-- ============ GEOPOLITICS, WAR & METALS (Market Direction Driver) ============ -->
+    <div id="geopoliticsSection" class="mb-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="section-head font-semibold text-gray-900 text-base">🌍 Geopolitics, War & Metals — Market Direction Driver</h3>
+        <span class="pill bg-red-100 text-red-700">Live Impact on Tomorrow's Open</span>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Wars disrupt supply and push capital to safety. <strong>Gold spikes</strong> (safe haven), <strong>oil spikes</strong> (supply shock → inflation), <strong>silver</strong> follows gold plus industrial demand. <strong>High geopolitical risk + rising oil = Market DOWN bias</strong>. Low risk + falling oil = Market UP bias. Auto-calculated from live VIX, global cues, breadth, gold & oil.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div class="p-3 bg-gray-50 rounded-lg text-xs">
+          <label class="font-medium text-gray-700 block mb-1">Geopolitical risk level <span class="info-tooltip" data-tooltip="Auto-calculated from VIX, global futures, SGX, breadth, gold & oil. Higher = more fear, risk-off for equities.">ℹ️</span></label>
+          <label class="flex items-center gap-1.5 mb-1 cursor-pointer">
+            <input type="checkbox" id="geoAuto" checked onchange="toggleGeoAuto()" class="w-3.5 h-3.5 accent-indigo-600">
+            <span class="text-[10px] text-gray-500">🔗 Auto from live market data</span>
+          </label>
+          <input type="range" id="geoRisk" min="1" max="5" value="2" class="w-full" oninput="updateGeoOutlook(); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
+          <div class="mt-1 font-semibold" id="geoRiskLabel">Calm / Peaceful</div>
+          <div class="mt-0.5 text-[10px] text-gray-400" id="geoRiskNote">Auto: gathering data…</div>
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg text-xs">
+          <label class="font-medium text-gray-700 block mb-1">Gold price (₹/10g) <span class="info-tooltip" data-source-tip="true">ℹ️</span></label>
+          <input type="number" id="geoGold" value="72500" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" oninput="markGeoManual('gold'); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg text-xs">
+          <label class="font-medium text-gray-700 block mb-1">Crude oil (₹/barrel) <span class="info-tooltip" data-source-tip="true">ℹ️</span></label>
+          <input type="number" id="geoOil" value="7200" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" oninput="markGeoManual('oil'); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
+        </div>
+        <div class="p-3 bg-gray-50 rounded-lg text-xs flex items-end sm:col-span-3">
+          <button onclick="useMarketGeo()" class="w-full sm:w-auto px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">🔄 Use Today's Market Values</button>
+        </div>
+      </div>
+      <div id="geoOutlook" class="mb-4"></div>
+      <div class="p-3 bg-blue-50 rounded-lg text-xs mb-4" id="geoGoldOil"></div>
+      <div id="geoGoldGuide" class="hidden"></div>
+    </div>
+
     <!-- Tomorrow Market Direction -->
     <div id="tomorrowPrediction" class="mb-6 hidden">
       <div class="rounded-2xl p-5 shadow-lg text-white" id="tpBox">
         <div class="flex items-center justify-between flex-wrap gap-3">
           <div class="min-w-0">
             <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider opacity-85">🔮 Tomorrow's Market Direction
-              <span class="info-tooltip" data-tooltip="Probabilistic estimate of whether the market is likely to open UP or DOWN tomorrow, based on today's pre-market cues: SGX Nifty, global futures (NASDAQ & Dow), India VIX, NSE breadth & commodities. Not financial advice — use alongside the steps below.">ℹ️</span>
+              <span class="info-tooltip" data-tooltip="Probabilistic estimate combining 8 cues: pre-market (SGX, global futures, VIX, breadth) + geopolitics, oil price, gold price. High geo risk + high oil = DOWN bias. Not financial advice.">ℹ️</span>
             </div>
             <div class="text-2xl md:text-3xl font-black mt-1" id="tpHeading">Predicting...</div>
           </div>
@@ -470,51 +505,6 @@
         <button onclick="showConcentrationCheck()" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-medium">Concentration Risk Check</button>
       </div>
       <div id="goalResult" class="hidden"></div>
-    </div>
-
-    <!-- ============ STEP 5: GEOPOLITICS, WAR & METALS ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 5 · Geopolitics, War & Metals</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 5 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Wars disrupt supply and push capital to safety. <strong>Gold spikes</strong> (safe haven), <strong>oil spikes</strong> (supply shock → inflation), <strong>silver</strong> follows gold plus industrial demand, and <strong>base metals</strong> are mixed. Move the risk dial to see the expected effect and which positions win or lose.</p>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div class="p-3 bg-gray-50 rounded-lg text-xs">
-          <label class="font-medium text-gray-700 block mb-1">Geopolitical risk dial</label>
-          <label class="flex items-center gap-1.5 mb-1 cursor-pointer">
-            <input type="checkbox" id="geoAuto" checked onchange="toggleGeoAuto()" class="w-3.5 h-3.5 accent-indigo-600">
-            <span class="text-[10px] text-gray-500">🔗 Auto from market momentum (VIX, global cues, Nifty, breadth, gold/oil)</span>
-          </label>
-          <input type="range" id="geoRisk" min="1" max="5" value="2" class="w-full" oninput="updateGeoOutlook()">
-          <div class="mt-1 font-semibold" id="geoRiskLabel">Calm / Peaceful</div>
-          <div class="mt-0.5 text-[10px] text-gray-400" id="geoRiskNote"></div>
-        </div>
-        <div class="p-3 bg-gray-50 rounded-lg text-xs">
-          <label class="font-medium text-gray-700 block mb-1">Gold price (₹/10g) <span class="info-tooltip" data-source-tip="true">ℹ️</span></label>
-          <input type="number" id="geoGold" value="72500" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" oninput="markGeoManual('gold')">
-        </div>
-        <div class="p-3 bg-gray-50 rounded-lg text-xs">
-          <label class="font-medium text-gray-700 block mb-1">Crude oil (₹/barrel) <span class="info-tooltip" data-source-tip="true">ℹ️</span></label>
-          <input type="number" id="geoOil" value="7200" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" oninput="markGeoManual('oil')">
-        </div>
-        <div class="p-3 bg-gray-50 rounded-lg text-xs flex items-end">
-          <button onclick="useMarketGeo()" class="w-full px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">🔄 Use Today's Market Values</button>
-        </div>
-      </div>
-      <div id="geoOutlook" class="mb-4"></div>
-      <div class="p-3 bg-blue-50 rounded-lg text-xs mb-4" id="geoGoldOil"></div>
-      <div id="geoGoldGuide" class="hidden"></div>
-      <div class="mt-3 p-3 bg-gray-50 rounded-lg text-xs">
-        <strong>How war moves each asset:</strong>
-        <ul class="list-disc list-inside ml-3 mt-1 space-y-0.5">
-          <li><strong>Gold</strong> — classic safe haven; prices rise in conflict. Best owned via Sovereign Gold Bonds / Gold ETF.</li>
-          <li><strong>Silver</strong> — "poor man's gold" + industrial metal. Rises with gold but needs industry demand to hold up.</li>
-          <li><strong>Crude oil</strong> — war in producing regions cuts supply → price spike → inflation → hurts autos/airlines, helps ONGC/Reliance.</li>
-          <li><strong>Base metals (copper/aluminium)</strong> — mixed: supply disruption is bullish, demand destruction is bearish. Defence & steel names can benefit.</li>
-          <li><strong>Equities</strong> — risk-off in a serious war (except defence/gold stocks); VIX spikes, index falls.</li>
-        </ul>
-      </div>
     </div>
 
     <!-- ============ STEP 6: TOP PERFORMERS BY HORIZON ============ -->
@@ -2325,9 +2315,27 @@
       if (data.nse.advances > data.nse.declines) f('Breadth', 'up', `${data.nse.advances}↑ / ${data.nse.declines}↓`);
       else if (data.nse.advances === data.nse.declines) f('Breadth', 'flat', 'Breadth even');
       else f('Breadth', 'down', `${data.nse.advances}↑ / ${data.nse.declines}↓`);
-      const commodityBullish = data.commodities.gold < 73000 && data.commodities.oil < 7500;
-      if (commodityBullish) f('Commodities', 'up', 'Gold/Oil supportive');
-      else f('Commodities', 'down', 'Gold/Oil caution');
+
+      // Geopolitical risk from slider (1=calm, 5=global conflict)
+      const geoLvl = parseInt(document.getElementById('geoRisk')?.value || '2', 10);
+      if (geoLvl >= 4) f('Geopolitics', 'down', `High risk (L${geoLvl}) — risk-off`);
+      else if (geoLvl >= 3) f('Geopolitics', 'down', `Conflict risk (L${geoLvl}) — cautious`);
+      else if (geoLvl === 2) f('Geopolitics', 'flat', `Tensions rising (L${geoLvl}) — neutral`);
+      else f('Geopolitics', 'up', `Calm (L${geoLvl}) — supportive`);
+
+      // Oil price impact (high oil = inflation risk = negative for India)
+      const oilPrice = parseFloat(document.getElementById('geoOil')?.value) || (data.commodities?.oil || 7200);
+      if (oilPrice > 8500) f('Oil Price', 'down', `₹${oilPrice.toLocaleString()} — high inflation risk`);
+      else if (oilPrice > 7500) f('Oil Price', 'down', `₹${oilPrice.toLocaleString()} — rising`);
+      else if (oilPrice > 7000) f('Oil Price', 'flat', `₹${oilPrice.toLocaleString()} — neutral`);
+      else f('Oil Price', 'up', `₹${oilPrice.toLocaleString()} — supportive (low)`);
+
+      // Gold price (high gold = fear)
+      const goldPrice = parseFloat(document.getElementById('geoGold')?.value) || (data.commodities?.gold || 72500);
+      if (goldPrice > 78000) f('Gold Price', 'down', `₹${goldPrice.toLocaleString()}/10g — extreme fear`);
+      else if (goldPrice > 75000) f('Gold Price', 'down', `₹${goldPrice.toLocaleString()}/10g — elevated`);
+      else f('Gold Price', 'flat', `₹${goldPrice.toLocaleString()}/10g — normal`);
+
       if (!chips.length) return;
 
       const ups = chips.filter(c => c.status === 'up').length;
@@ -2347,7 +2355,7 @@
       tpb.className = `rounded-2xl p-5 shadow-lg text-white ${cls}`;
       document.getElementById('tpHeading').textContent = heading;
       document.getElementById('tpConfidence').textContent = prob + '%';
-      document.getElementById('tpReason').textContent = `${sub} Probabilistic read of today's 5 pre-market cues — not financial advice.`;
+      document.getElementById('tpReason').textContent = `${sub} Probabilistic read of 8 cues (5 pre-market + geopolitics, oil, gold) — not financial advice.`;
       document.getElementById('tpChips').innerHTML = chips.map(c => {
         const tone = c.status === 'flat' ? 'bg-white/15 text-white' : (c.status === 'up' ? 'bg-white/25 text-white' : 'bg-black/25 text-white');
         const mark = c.status === 'flat' ? '◦' : (c.status === 'up' ? '▲' : '▼');
