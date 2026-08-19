@@ -2599,6 +2599,167 @@
             <p class="mt-3 text-blue-700 text-sm">${rangeNote}</p>
             <p class="mt-2 text-[11px] text-blue-500">Pivot reference (prev close based): R2=+1.5%, R1=+0.75%, S1=-0.75%, S2=-1.5%. <em>Not financial advice.</em></p>
           </div>
+
+          <!-- Ultra-Wealthy Investor Filter (Buffett & Damani Methodology) -->
+          ${generateWealthPerspective(data, catalysts, overallBias, vixLevel, geoLvl, oilPrice, goldChg, sgxChg, globalAvg, nasdaqChg)}
+        </div>
+      `;
+    }
+
+    function generateWealthPerspective(data, catalysts, overallBias, vixLevel, geoLvl, oilPrice, goldChg, sgxChg, globalAvg, nasdaqChg) {
+      // A. Margin of Safety Rule - Identify high-quality, low-debt sectors unfairly beaten down
+      const beatenDownSectors = catalysts.filter(c => c.sentiment === 'Bearish' && c.direction === 'Down');
+      const marginOfSafetyCandidates = [];
+      const highRiskAvoidZones = [];
+
+      // Check each bearish catalyst for MoS opportunity
+      beatenDownSectors.forEach(c => {
+        const sector = c.sector.toLowerCase();
+        // High-quality, low-debt moat sectors
+        if (sector.includes('it') || sector.includes('pharma') || sector.includes('fmcg') || sector.includes('paint') || sector.includes('consumer')) {
+          marginOfSafetyCandidates.push({
+            sector: c.sector,
+            reason: `${c.catalyst} panic is likely noise — ${c.sector} leaders (TCS/Infosys, Sun Pharma, Asian Paints, Titan, ITC) have zero/low debt, pricing power, and recurring revenue. Buffett: "Buy wonderful companies at fair prices when Mr. Market is fearful."`
+          });
+        }
+        // High leverage sectors = Avoid Zone
+        if (sector.includes('metal') || sector.includes('infra') || sector.includes('realty') || sector.includes('psu bank') || sector.includes('capital goods')) {
+          highRiskAvoidZones.push({
+            sector: c.sector,
+            reason: `${c.sector} carries high leverage & capex cycles. Rising global rates (VIX ${vixLevel.toFixed(1)}) + commodity cost inflation = interest coverage risk. Damani/Jhunjhunwala avoid: "Don't buy cyclicals at peak leverage."`
+          });
+        }
+      });
+
+      // B. Economic Moat Analysis - Pricing power check
+      const moatAnalysis = [];
+      catalysts.forEach(c => {
+        const sector = c.sector.toLowerCase();
+        if (c.catalyst.includes('Crude') || c.catalyst.includes('Oil')) {
+          if (sector.includes('paint') || sector.includes('tyre')) {
+            moatAnalysis.push({ sector: 'Paint (Asian Paints, Berger) / Tyre (Apollo, MRF)', moat: 'Strong', pricingPower: 'High', note: 'Brand monopolies + distribution moat allow full pass-through of crude cost increases. Margins recover in 2-3 quarters.' });
+          }
+          if (sector.includes('oil & gas')) {
+            moatAnalysis.push({ sector: 'Oil & Gas (Reliance, ONGC)', moat: 'Moderate', pricingPower: 'Mixed', note: 'Upstream (ONGC) benefits from high crude; downstream (Reliance refining) faces crack spread volatility. GRM dependency = no pure moat.' });
+          }
+        }
+        if (c.catalyst.includes('NASDAQ') || c.catalyst.includes('US Tech')) {
+          moatAnalysis.push({ sector: 'IT (TCS, Infosys, HCLTech)', moat: 'Very Strong', pricingPower: 'High', note: 'High switching costs (ERP/core systems), annuity revenue (60%+), net cash balance sheets. USD revenue = natural hedge.' });
+        }
+        if (c.catalyst.includes('Geopolitics') || c.catalyst.includes('Gold')) {
+          if (sector.includes('defence') || sector.includes('pharma')) {
+            moatAnalysis.push({ sector: 'Defence (HAL, BEL, BDL) / Pharma (Sun, Cipla, Dr Reddy)', moat: 'Strong (Defence) / Moderate (Pharma)', pricingPower: 'High (Defence: sovereign buyer) / Moderate (Pharma: regulated)', note: 'Defence: GoI capex pipeline (₹10L Cr+), import substitution moat. Pharma: ANDA pipeline + China+1 supply chain shift.' });
+          }
+        }
+      });
+
+      // C. Noise vs Structural Shift - Fear/Greed assessment
+      const isExtremeFear = vixLevel > 25 || geoLvl >= 4 || (sgxChg < -1 && globalAvg < -1);
+      const isExtremeGreed = vixLevel < 12 && sgxChg > 1 && globalAvg > 1;
+      let noiseVsShift = '';
+      let accumulationWindow = null;
+      
+      if (isExtremeFear) {
+        noiseVsShift = `🟢 <strong>EXTREME FEAR DETECTED</strong> (VIX ${vixLevel.toFixed(1)}, Geo L${geoLvl}, SGX ${sgxChg.toFixed(2)}%, Global ${globalAvg.toFixed(2)}%). Buffett: "Be greedy when others are fearful." This is likely <em>noise</em> — geopolitical headlines & algorithmic selling, not earnings destruction. High-moat, zero-debt compounders are on sale.`;
+        accumulationWindow = 'FMCG (ITC, HUL, Nestle), IT (TCS, Infosys), Paint (Asian Paints), Pharma (Sun Pharma), Defence (HAL, BEL) — SIP or staggered buys over 4-6 weeks.';
+      } else if (isExtremeGreed) {
+        noiseVsShift = `🔴 <strong>EXTREME GREED DETECTED</strong> (VIX ${vixLevel.toFixed(1)}, SGX ${sgxChg.toFixed(2)}%, Global ${globalAvg.toFixed(2)}%). Buffett: "Be fearful when others are greedy." Risk of mean reversion high. Avoid chasing momentum in high-beta cyclicals.`;
+        accumulationWindow = 'Hold cash / increase Gold allocation. Deploy only on 5-8% corrections in moat names.';
+      } else {
+        noiseVsShift = `🟡 <strong>NORMAL REGIME</strong> — Mixed signals. No structural shift detected. Stick to asset allocation discipline.`;
+        accumulationWindow = 'Continue SIPs per risk profile. Selective value buys in Banking (HDFC, ICICI) on dips.';
+      }
+
+      // D. Best Risk-Reward Sector Today
+      let bestSector = 'FMCG (ITC / HUL / Nestle)';
+      let bestReason = 'Defensive moat, pricing power, zero debt, consistent ROE 25%+, dividend yield — lowest drawdown in corrections.';
+      if (isExtremeFear) {
+        bestSector = 'IT (TCS / Infosys) + FMCG';
+        bestReason = 'IT: Net cash, USD revenue hedge, 45%+ ROE, AI/GenAI tailwind. FMCG: Consumption floor. Combined = best risk-reward in fear.';
+      } else if (geoLvl >= 3) {
+        bestSector = 'Defence (HAL / BEL) + Gold ETF';
+        bestReason = 'Structural GoI capex (₹10L Cr+), import substitution policy, sovereign buyer = ultimate moat. Gold = portfolio insurance.';
+      } else if (oilPrice < 7000 && vixLevel < 15) {
+        bestSector = 'Paint (Asian Paints) + Tyre (Apollo/MRF) + Auto Ancillaries';
+        bestReason = 'Low crude = margin expansion + volume growth. Pricing power intact. Cyclical upturn + structural moat = GARP sweet spot.';
+      }
+
+      return `
+        <div class="mt-6 p-5 bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 border-2 border-amber-300 rounded-2xl">
+          <h4 class="font-bold text-amber-900 text-lg mb-4 flex items-center gap-2">
+            <span>💎</span> The Ultra-Wealthy Investor Filter (Buffett & Damani Methodology)
+          </h4>
+          
+          <!-- A. Margin of Safety Rule -->
+          <div class="mb-4 p-4 bg-white/80 backdrop-blur rounded-xl border border-amber-200">
+            <h5 class="font-semibold text-amber-800 mb-2 flex items-center gap-1">🛡️ A. Margin of Safety Rule (Capital Protection First)</h5>
+            ${marginOfSafetyCandidates.length > 0 ? `
+              <div class="space-y-2 mb-3">
+                <p class="text-sm text-green-800 font-medium">✅ Margin of Safety Opportunities (Panic = Opportunity):</p>
+                ${marginOfSafetyCandidates.map(m => `
+                  <p class="text-sm text-gray-700 border-l-2 border-green-500 pl-2"><strong>${m.sector}:</strong> ${m.reason}</p>
+                `).join('')}
+              </div>
+            ` : ''}
+            ${highRiskAvoidZones.length > 0 ? `
+              <div class="space-y-2">
+                <p class="text-sm text-red-800 font-medium">🚫 High-Risk Avoid Zones (High Leverage + Rising Rates):</p>
+                ${highRiskAvoidZones.map(z => `
+                  <p class="text-sm text-gray-700 border-l-2 border-red-500 pl-2"><strong>${z.sector}:</strong> ${z.reason}</p>
+                `).join('')}
+              </div>
+            ` : ''}
+            ${marginOfSafetyCandidates.length === 0 && highRiskAvoidZones.length === 0 ? `
+              <p class="text-sm text-gray-600">No clear Margin of Safety setups or Avoid Zones at current levels. Maintain watchlist discipline.</p>
+            ` : ''}
+          </div>
+
+          <!-- B. Economic Moat Analysis -->
+          <div class="mb-4 p-4 bg-white/80 backdrop-blur rounded-xl border border-amber-200">
+            <h5 class="font-semibold text-amber-800 mb-2 flex items-center gap-1">🏰 B. Economic Moat Analysis (Pricing Power & Structural Advantage)</h5>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs border border-amber-200 rounded-lg overflow-hidden">
+                <thead class="bg-amber-50">
+                  <tr>
+                    <th class="p-2 text-left font-semibold text-amber-800 border-b border-amber-200">Sector / Leaders</th>
+                    <th class="p-2 text-center font-semibold text-amber-800 border-b border-amber-200">Moat Strength</th>
+                    <th class="p-2 text-center font-semibold text-amber-800 border-b border-amber-200">Pricing Power</th>
+                    <th class="p-2 text-left font-semibold text-amber-800 border-b border-amber-200">Buffett/Damani View</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${moatAnalysis.map(m => `
+                    <tr class="border-t border-amber-100 hover:bg-amber-50">
+                      <td class="p-2 font-semibold text-gray-900">${m.sector}</td>
+                      <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-semibold ${m.moat === 'Very Strong' ? 'bg-green-100 text-green-800' : m.moat === 'Strong' ? 'bg-green-100 text-green-800' : m.moat === 'Moderate' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'}">${m.moat}</span></td>
+                      <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-semibold ${m.pricingPower === 'High' ? 'bg-green-100 text-green-800' : m.pricingPower === 'Mixed' ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-700'}">${m.pricingPower}</span></td>
+                      <td class="p-2 text-gray-700">${m.note}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- C. Noise vs Structural Shift -->
+          <div class="mb-4 p-4 bg-white/80 backdrop-blur rounded-xl border border-amber-200">
+            <h5 class="font-semibold text-amber-800 mb-2 flex items-center gap-1">🧠 C. Distinguishing Noise from Structural Shift</h5>
+            <p class="text-sm text-gray-700 mb-2">${noiseVsShift}</p>
+            ${accumulationWindow ? `
+              <p class="text-sm text-amber-900 font-medium bg-amber-100 p-2 rounded">🎯 <strong>Institutional Accumulation Window:</strong> ${accumulationWindow}</p>
+            ` : ''}
+          </div>
+
+          <!-- D. Long-Term Wealth Accumulation Perspective -->
+          <div class="p-4 bg-gradient-to-r from-amber-100 to-orange-100 rounded-xl border border-amber-300">
+            <h5 class="font-bold text-amber-900 mb-2 flex items-center gap-2">💡 ### :bulb: Long-Term Wealth Accumulation Perspective</h5>
+            <p class="text-sm text-amber-900 leading-relaxed">
+              A patient, deep-pocketed value investor would exploit today's <strong>${overallBias.toLowerCase()}</strong> macro by <strong>${isExtremeFear ? 'aggressively accumulating high-moat, zero-debt compounders on fear-driven dips' : isExtremeGreed ? 'raising cash & waiting for 5-8% corrections in quality names' : 'sticking to disciplined SIPs in moat sectors'}</strong>, ignoring short-term volatility as the price of admission for compounding.
+            </p>
+            <p class="text-sm text-amber-900 font-semibold mt-2">
+              <strong>Safest risk-to-reward today:</strong> <span class="underline">${bestSector}</span> — ${bestReason}
+            </p>
+          </div>
         </div>
       `;
     }
