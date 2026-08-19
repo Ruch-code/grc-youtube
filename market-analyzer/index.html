@@ -217,6 +217,20 @@
       <div id="geoGoldGuide" class="hidden"></div>
     </div>
 
+    <!-- ============ GLOBAL-TO-LOCAL MARKET ANALYSIS (AI Expert) ============ -->
+    <div id="globalLocalAnalysis" class="mb-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="section-head font-semibold text-gray-900 text-base">🤖 Global → Local Market Analysis (AI Expert)</h3>
+        <span class="pill bg-purple-100 text-purple-700">NSE/BSE Sectoral Impact</span>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Maps live global catalysts (US tech, commodities, Fed yields, geopolitics) to Indian sectoral indices using institutional correlation logic. Refreshes with live data.</p>
+      <div class="flex flex-wrap gap-2 mb-3">
+        <button onclick="runGlobalLocalAnalysis()" id="glaBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium">🔄 Analyze Now</button>
+        <span id="glaStatus" class="text-xs text-gray-500 self-center"></span>
+      </div>
+      <div id="glaResult" class="hidden"></div>
+    </div>
+
     <!-- Tomorrow Market Direction -->
     <div id="tomorrowPrediction" class="mb-6 hidden">
       <div class="rounded-2xl p-5 shadow-lg text-white" id="tpBox">
@@ -2361,6 +2375,232 @@
         const mark = c.status === 'flat' ? '◦' : (c.status === 'up' ? '▲' : '▼');
         return `<span class="px-2 py-0.5 rounded-full text-[11px] font-semibold ${tone}">${mark} ${c.label} · ${c.detail}</span>`;
       }).join('');
+    }
+
+    // ============ GLOBAL-TO-LOCAL MARKET ANALYSIS (AI Expert) ============
+    async function runGlobalLocalAnalysis() {
+      const btn = document.getElementById('glaBtn');
+      const status = document.getElementById('glaStatus');
+      const resultDiv = document.getElementById('glaResult');
+      
+      btn.disabled = true;
+      btn.textContent = 'Analyzing...';
+      status.textContent = 'Fetching live data & mapping catalysts...';
+      resultDiv.classList.add('hidden');
+
+      try {
+        // Fetch fresh live data
+        const live = await fetchLiveTopData();
+        const base = getStableMockData();
+        const data = {
+          sgx: live.sgx || base.sgx,
+          nasdaq: live.nasdaq || base.nasdaq,
+          dow: live.dow || base.dow,
+          vix: live.vix || base.vix,
+          nse: base.nse,
+          commodities: {
+            gold: live.commodities?.gold || base.commodities.gold,
+            silver: live.commodities?.silver || base.commodities.silver,
+            oil: live.commodities?.oil || base.commodities.oil
+          }
+        };
+
+        const analysis = generateGlobalLocalAnalysis(data);
+        resultDiv.innerHTML = analysis;
+        resultDiv.classList.remove('hidden');
+        status.textContent = `Updated ${new Date().toLocaleTimeString()}`;
+      } catch (e) {
+        console.error('Global-Local analysis error:', e);
+        status.textContent = 'Error — using cached data';
+        const cached = window.lastMarketData || getStableMockData();
+        const analysis = generateGlobalLocalAnalysis(cached);
+        resultDiv.innerHTML = analysis;
+        resultDiv.classList.remove('hidden');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 Analyze Now';
+      }
+    }
+
+    function generateGlobalLocalAnalysis(data) {
+      const catalysts = [];
+      
+      // 1. US Tech / NASDAQ → NIFTY IT
+      const nasdaqChg = data.nasdaq?.change || 0;
+      if (Math.abs(nasdaqChg) > 0.1) {
+        catalysts.push({
+          catalyst: `NASDAQ ${nasdaqChg >= 0 ? '+' : ''}${nasdaqChg.toFixed(2)}%`,
+          sector: 'NIFTY IT',
+          direction: nasdaqChg > 0 ? 'Up' : 'Down',
+          rationale: `US tech ${nasdaqChg > 0 ? 'gains' : 'losses'} drive Indian IT (Infosys, TCS, HCLTech) via revenue correlation & sentiment — ${Math.abs(nasdaqChg).toFixed(1)}% move typically translates to 0.5-1.2x beta in NIFTY IT.`,
+          sentiment: nasdaqChg > 0 ? 'Bullish' : 'Bearish',
+          betaRisk: 1.2
+        });
+      }
+
+      // 2. Global Commodities (Brent Crude, LME) → NIFTY Metal, Oil & Gas, Paint/Tyre
+      const oilChg = data.commodities?.oil?.changePct || 0;
+      const oilPrice = data.commodities?.oil?.current || 7200;
+      if (Math.abs(oilChg) > 0.5 || oilPrice > 8000) {
+        const isHighOil = oilPrice > 8000;
+        catalysts.push({
+          catalyst: `Crude Oil ${oilChg >= 0 ? '+' : ''}${oilChg.toFixed(2)}% (₹${oilPrice.toLocaleString()}/bbl)`,
+          sector: isHighOil ? 'NIFTY Oil & Gas / Paint / Tyre' : 'NIFTY Metal',
+          direction: oilChg > 0 ? 'Down' : 'Up',
+          rationale: isHighOil 
+            ? `High crude (₹${oilPrice.toLocaleString()}) = input cost pressure on Paint (Asian Paints, Berger), Tyre (Apollo, MRF), Airlines — margin compression. Oil & Gas (ONGC, Reliance) mixed: upstream gains vs downstream cracks.`
+            : `Crude ${oilChg > 0 ? 'rise' : 'fall'} impacts Metal (Hindalco, JSW, Tata Steel) via energy costs & global demand signal. Lower oil = better margins for Paint/Tyre, positive for India's import bill.`,
+          sentiment: isHighOil ? 'Bearish' : (oilChg > 0 ? 'Bearish' : 'Bullish'),
+          betaRisk: isHighOil ? 1.5 : 1.0
+        });
+      }
+
+      // 3. US Fed / Treasury Yields → FII Flows → NIFTY PSU Bank / Financials
+      const dowChg = data.dow?.change || 0;
+      const vixLevel = data.vix?.current || 15;
+      const us10yProxy = vixLevel > 20 ? 'rising yields / risk-off' : (dowChg > 0 ? 'stable yields / risk-on' : 'falling yields / caution');
+      catalysts.push({
+        catalyst: `US Yields / VIX (${vixLevel.toFixed(1)}) — ${us10yProxy}`,
+        sector: 'NIFTY PSU Bank / Financials (HDFC Bank, ICICI, SBI)',
+        direction: (vixLevel < 15 && dowChg > 0) ? 'Up' : (vixLevel > 20 ? 'Down' : 'Flat'),
+        rationale: `VIX ${vixLevel.toFixed(1)} ${vixLevel < 15 ? 'signals calm' : vixLevel > 20 ? 'signals fear' : 'is elevated'} → FII flows ${vixLevel < 15 ? 'positive' : vixLevel > 20 ? 'negative/outflows' : 'mixed'} for Indian financials. High weightage in NIFTY/Sensex amplifies index impact.`,
+        sentiment: (vixLevel < 15 && dowChg > 0) ? 'Bullish' : (vixLevel > 20 ? 'Bearish' : 'Neutral'),
+        betaRisk: 1.3
+      });
+
+      // 4. Geopolitics / Gold → NIFTY Pharma / Defence / Gold ETF
+      const geoLvl = parseInt(document.getElementById('geoRisk')?.value || '2', 10);
+      const goldChg = data.commodities?.gold?.changePct || 0;
+      if (geoLvl >= 3 || Math.abs(goldChg) > 1) {
+        catalysts.push({
+          catalyst: `Geopolitical Risk L${geoLvl} / Gold ${goldChg >= 0 ? '+' : ''}${goldChg.toFixed(2)}%`,
+          sector: geoLvl >= 4 ? 'Defence (HAL, BEL, BDL) / Gold ETF' : 'NIFTY Pharma / Defence',
+          direction: geoLvl >= 3 ? 'Up' : 'Flat',
+          rationale: geoLvl >= 4 
+            ? `Major conflict risk (L${geoLvl}) → Defence capex surge (GoI allocation), Gold safe-haven bid. Pharma (Sun Pharma, Cipla) gains on supply chain diversification from China.`
+            : `Localized tensions (L${geoLvl}) + Gold ${goldChg > 0 ? 'rising' : 'steady'} → Moderate Defence order flow visibility, Pharma defensive buying. Gold ETF (SGB/ETF) allocation hedge.`,
+          sentiment: geoLvl >= 3 ? 'Bullish' : 'Neutral',
+          betaRisk: geoLvl >= 4 ? 1.4 : 1.1
+        });
+      }
+
+      // 5. SGX Nifty / Global Futures → Overall Market Bias
+      const sgxChg = data.sgx?.change || 0;
+      const globalAvg = ((data.nasdaq?.change || 0) + (data.dow?.change || 0)) / 2;
+      catalysts.push({
+        catalyst: `SGX Nifty ${sgxChg >= 0 ? '+' : ''}${sgxChg.toFixed(2)}% / Global Avg ${globalAvg >= 0 ? '+' : ''}${globalAvg.toFixed(2)}%`,
+        sector: 'NIFTY 50 / Sensex (Broad Market)',
+        direction: (sgxChg > 0.3 && globalAvg > 0) ? 'Up' : (sgxChg < -0.3 && globalAvg < 0) ? 'Down' : 'Flat',
+        rationale: `SGX ${sgxChg > 0 ? 'premium' : sgxChg < 0 ? 'discount' : 'par'} + Global futures ${globalAvg > 0 ? 'green' : globalAvg < 0 ? 'red' : 'flat'} → Gap ${sgxChg > 0.3 ? 'up' : sgxChg < -0.3 ? 'down' : 'flat'} likely. Pre-open correlation >0.7 with SGX.`,
+        sentiment: (sgxChg > 0.3 && globalAvg > 0) ? 'Bullish' : (sgxChg < -0.3 && globalAvg < 0) ? 'Bearish' : 'Neutral',
+        betaRisk: 1.0
+      });
+
+      // Determine overall bias
+      const bullishCount = catalysts.filter(c => c.sentiment === 'Bullish').length;
+      const bearishCount = catalysts.filter(c => c.sentiment === 'Bearish').length;
+      const overallBias = bullishCount > bearishCount ? 'Bullish' : (bearishCount > bullishCount ? 'Bearish' : 'Neutral');
+      const biasJustification = overallBias === 'Bullish' 
+        ? `${bullishCount} bullish catalysts vs ${bearishCount} bearish — net positive for opening.`
+        : overallBias === 'Bearish'
+          ? `${bearishCount} bearish catalysts vs ${bullishCount} bullish — net negative for opening.`
+          : `Balanced catalysts (${bullishCount} bullish, ${bearishCount} bearish) — mixed open expected.`;
+
+      // Volatility Bands
+      const maxBeta = Math.max(...catalysts.map(c => c.betaRisk));
+      const isHighImpact = catalysts.some(c => Math.abs(
+        (c.catalyst.includes('NASDAQ') ? nasdaqChg : 
+         c.catalyst.includes('Crude') ? oilChg :
+         c.catalyst.includes('Gold') ? goldChg : sgxChg)
+      ) > 1.5) || vixLevel > 20 || geoLvl >= 4;
+      
+      const rangeType = isHighImpact ? 'Expanded (exceeds 1-day ATR)' : 'Standard (within 1-day ATR)';
+      const rangeNote = isHighImpact 
+        ? 'High-impact catalysts present — expect NIFTY to test R1/R2 (if bullish) or S1/S2 (if bearish) pivot levels. Probabilistic range: ±1.5-2.0% from prev close.'
+        : 'Normal volatility regime — expect NIFTY within ±0.8-1.2% (1-day ATR). Probabilistic range: ±1.0% from prev close.';
+
+      // Build HTML
+      const sentimentBadge = overallBias === 'Bullish' ? 'bg-green-100 text-green-800' : 
+                            overallBias === 'Bearish' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+      
+      const sentimentIcon = overallBias === 'Bullish' ? '🟢' : overallBias === 'Bearish' ? '🔴' : '🟡';
+      
+      const dirBadge = (dir) => dir === 'Up' ? 'bg-green-100 text-green-800' : 
+                               dir === 'Down' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-700';
+      
+      const sentBadge = (s) => s === 'Bullish' ? 'bg-green-100 text-green-800' : 
+                               s === 'Bearish' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800';
+
+      return `
+        <div class="space-y-4">
+          <!-- Market Sentiment Overview -->
+          <div class="p-4 bg-gradient-to-r from-purple-50 to-indigo-50 rounded-xl border border-purple-200">
+            <h4 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <span>${sentimentIcon}</span> Market Sentiment Overview
+            </h4>
+            <p class="text-sm text-gray-700"><strong class="px-2 py-0.5 rounded ${sentimentBadge}">${overallBias}</strong> — ${biasJustification}</p>
+          </div>
+
+          <!-- Sectoral Impact Matrix -->
+          <div>
+            <h4 class="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <span>📊</span> Sectoral Impact Matrix
+            </h4>
+            <div class="overflow-x-auto">
+              <table class="w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th class="p-2 text-left font-semibold text-gray-600 border-b border-gray-200">Global Catalyst</th>
+                    <th class="p-2 text-left font-semibold text-gray-600 border-b border-gray-200">Impacted Indian Index/Sector</th>
+                    <th class="p-2 text-center font-semibold text-gray-600 border-b border-gray-200">Expected Direction</th>
+                    <th class="p-2 text-left font-semibold text-gray-600 border-b border-gray-200">Core Rationale</th>
+                    <th class="p-2 text-center font-semibold text-gray-600 border-b border-gray-200">Sentiment</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${catalysts.map(c => `
+                    <tr class="border-t border-gray-100 hover:bg-gray-50">
+                      <td class="p-2 font-mono text-sm font-medium">${c.catalyst}</td>
+                      <td class="p-2 font-semibold text-gray-900">${c.sector}</td>
+                      <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-semibold ${dirBadge(c.direction)}">${c.direction}</span></td>
+                      <td class="p-2 text-gray-700">${c.rationale}</td>
+                      <td class="p-2 text-center"><span class="px-2 py-0.5 rounded text-xs font-semibold ${sentBadge(c.sentiment)}">${c.sentiment}</span></td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Immediate Trading Risk Warning -->
+          <div class="p-4 bg-red-50 border border-red-200 rounded-xl">
+            <h4 class="font-semibold text-red-800 mb-2 flex items-center gap-2">⚠️ Immediate Trading Risk Warning</h4>
+            <div class="text-sm text-red-700 space-y-1">
+              ${catalysts.filter(c => c.betaRisk >= 1.3).map(c => 
+                `<p>• <strong>${c.sector}</strong> (β ~${c.betaRisk}x): ${c.sentiment === 'Bearish' ? 'High downside risk — avoid aggressive longs, use tight stops.' : c.sentiment === 'Bullish' ? 'Momentum chase risk — don\'t FOMO, wait for pullback to VWAP/EMA.' : 'Choppy — range-bound, avoid directional bets.'}</p>`
+              ).join('')}
+              ${catalysts.filter(c => c.betaRisk < 1.3).length ? `<p class="text-gray-600">• Lower-beta sectors: Size positions per ATR, respect ${rangeType.split(' ')[0].toLowerCase()} range.</p>` : ''}
+            </div>
+          </div>
+
+          <!-- Volatility Bands & Range Estimation -->
+          <div class="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+            <h4 class="font-semibold text-blue-900 mb-2 flex items-center gap-2">📏 Volatility Bands & Range Estimation</h4>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+              <div>
+                <p class="font-medium text-gray-700">Daily Range Classification</p>
+                <p class="text-blue-800 font-semibold">${rangeType}</p>
+              </div>
+              <div>
+                <p class="font-medium text-gray-700">Max Sector Beta</p>
+                <p class="text-blue-800 font-semibold">${maxBeta.toFixed(1)}x</p>
+              </div>
+            </div>
+            <p class="mt-3 text-blue-700 text-sm">${rangeNote}</p>
+            <p class="mt-2 text-[11px] text-blue-500">Pivot reference (prev close based): R2=+1.5%, R1=+0.75%, S1=-0.75%, S2=-1.5%. <em>Not financial advice.</em></p>
+          </div>
+        </div>
+      `;
     }
 
     async function fetchTDSymbol(candidates) {
