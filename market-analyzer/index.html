@@ -2375,6 +2375,12 @@
       if (!q) return q;
       return { current: q.price, change: q.change, changePct: q.changePct, prevClose: q.prevClose };
     }
+    function toCommodityCard(q, rate, unit) {
+      if (!q) return null;
+      const current = q.price * rate / unit;
+      const prev = q.prevClose * rate / unit;
+      return { current, prevClose: prev, change: current - prev, changePct: ((current - prev) / prev) * 100 };
+    }
 
     async function fetchLiveTopData() {
       const key = getTDKey();
@@ -2393,9 +2399,9 @@
         if (vix) out.vix = toCard(vix);
         const rate = usdinr ? usdinr.price : 85;
         out.commodities = {
-          gold: gold ? gold.price * rate * 10 / 31.1035 : null,
-          silver: silver ? silver.price * rate * 1000 / 31.1035 : null,
-          oil: oil ? oil.price * rate : null
+          gold: toCommodityCard(gold, rate * 10 / 31.1035, 1),
+          silver: toCommodityCard(silver, rate * 1000 / 31.1035, 1),
+          oil: toCommodityCard(oil, rate, 1)
         };
         out.mode = 'yahoo';
         return out;
@@ -2416,9 +2422,9 @@
         const silver = await fetchTDSymbol(['XAG/USD', 'SILVER/USD']);
         const oil = await fetchTDSymbol(['WTI/USD', 'CL/F', 'BRENT/USD', 'OIL/USD']);
         out.commodities = {
-          gold: gold ? gold.price * rate * 10 / 31.1035 : null,
-          silver: silver ? silver.price * rate * 1000 / 31.1035 : null,
-          oil: oil ? oil.price * rate : null
+          gold: toCommodityCard(gold, rate * 10 / 31.1035, 1),
+          silver: toCommodityCard(silver, rate * 1000 / 31.1035, 1),
+          oil: toCommodityCard(oil, rate, 1)
         };
       } catch (e) {}
       out.mode = useProxy ? 'proxy' : 'twelve';
@@ -3274,6 +3280,16 @@
       else if (ratio >= 20) ratioNote = 'Ratio slightly rich — mild fear premium in gold.';
       else ratioNote = 'Ratio in the normal range — gold and oil roughly in balance.';
 
+      // Get live change % from last market data
+      const liveData = window.lastMarketData;
+      let goldChangePct = null, oilChangePct = null, goldPrevClose = null, oilPrevClose = null;
+      if (liveData?.commodities) {
+        if (liveData.commodities.gold?.changePct !== undefined) goldChangePct = liveData.commodities.gold.changePct;
+        if (liveData.commodities.oil?.changePct !== undefined) oilChangePct = liveData.commodities.oil.changePct;
+        goldPrevClose = liveData.commodities.gold?.prevClose;
+        oilPrevClose = liveData.commodities.oil?.prevClose;
+      }
+
       const row = (name, val, up) => `<div class="p-2 bg-white rounded"><span class="text-gray-600">${name}</span><span class="float-right font-semibold ${up ? 'text-green-600' : 'text-red-600'}">${val}</span></div>`;
       document.getElementById('geoOutlook').innerHTML = `
         <div class="grid grid-cols-2 md:grid-cols-5 gap-2 text-xs mb-3">
@@ -3285,7 +3301,29 @@
         </div>
         <div class="p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-900">${g.note}</div>
       `;
+      
+      const formatChange = (pct) => {
+        if (pct === null || pct === undefined || isNaN(pct)) return '<span class="text-gray-400">—</span>';
+        const prefix = pct >= 0 ? '+' : '';
+        const color = pct >= 0 ? 'text-green-600' : 'text-red-600';
+        return `<span class="font-semibold ${color}">${prefix}${pct.toFixed(2)}%</span>`;
+      };
+      
       document.getElementById('geoGoldOil').innerHTML = `
+        <div class="grid grid-cols-2 gap-3 mb-3">
+          <div class="p-3 bg-white rounded border">
+            <div class="text-xs text-gray-500 mb-1">Gold (₹/10g)</div>
+            <div class="font-semibold text-lg">₹${formatNumber(gold, 0)}</div>
+            <div class="text-sm mt-1">vs prev close: ${formatChange(goldChangePct)}</div>
+            ${goldPrevClose ? `<div class="text-[10px] text-gray-400 mt-1">Prev: ₹${formatNumber(goldPrevClose, 0)}</div>` : ''}
+          </div>
+          <div class="p-3 bg-white rounded border">
+            <div class="text-xs text-gray-500 mb-1">Crude Oil (₹/bbl)</div>
+            <div class="font-semibold text-lg">₹${formatNumber(oil, 0)}</div>
+            <div class="text-sm mt-1">vs prev close: ${formatChange(oilChangePct)}</div>
+            ${oilPrevClose ? `<div class="text-[10px] text-gray-400 mt-1">Prev: ₹${formatNumber(oilPrevClose, 0)}</div>` : ''}
+          </div>
+        </div>
         <strong>Gold–Oil relation:</strong> 1 oz of gold (≈₹${formatNumber(goldPerOz, 0)}) buys ≈ <strong>${ratio.toFixed(1)} barrels</strong> of oil (₹${formatNumber(oil, 0)}/bbl). ${ratioNote}
         <br><span class="text-gray-600">When war breaks out, both gold & oil usually rise together (fear + supply shock) — but gold rises more, so the ratio climbs. A falling ratio (oil rising faster) signals inflation pressure on the economy.</span>
       `;
