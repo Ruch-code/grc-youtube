@@ -368,6 +368,35 @@
       </div>
     </div>
 
+    <!-- ============ STEP 9: CAPITAL-BASED ADVISOR (moved after Step 1) ============ -->
+    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="section-head font-semibold text-gray-900 text-base">Step 9 · Capital-Based Portfolio Builder</h3>
+        <span class="pill bg-indigo-100 text-indigo-700">Step 9 of 12</span>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Tell us how much you can invest <strong>this month</strong> and we'll size the whole plan: how much goes to equity/debt/gold/cash (from your Step 1 profile), which stocks with <strong>exact affordable quantities</strong>, and which SIPs to start.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div><label class="text-xs font-medium text-gray-600">Monthly investable amount (₹)</label><input type="number" id="capAmount" value="10000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="500"></div>
+        <div><label class="text-xs font-medium text-gray-600">Horizon</label>
+          <select id="capHorizon" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1">
+            <option value="short">Short term (1-3 mo)</option>
+            <option value="mid">Mid term (3-6 mo)</option>
+            <option value="long" selected>Long term (6 mo-1 yr+)</option>
+          </select>
+        </div>
+        <div><label class="text-xs font-medium text-gray-600">Risk profile</label>
+          <select id="capProfile" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1">
+            <option value="auto" selected>Auto (from Step 1)</option>
+            <option value="conservative">Conservative</option>
+            <option value="moderate">Moderate</option>
+            <option value="aggressive">Aggressive</option>
+          </select>
+        </div>
+      </div>
+      <button onclick="buildCapitalPlan()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Build My Monthly Plan</button>
+      <div id="capResult" class="mt-4"></div>
+    </div>
+
     <!-- ============ STEP 2: ASSET ALLOCATION ============ -->
     <div id="allocationSection" class="mt-6 hidden">
       <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
@@ -798,28 +827,7 @@
       </div>
       <p class="text-xs text-gray-500 mb-4">Tell us how much you can invest <strong>this month</strong> and we'll size the whole plan: how much goes to equity/debt/gold/cash (from your Step 1 profile), which stocks with <strong>exact affordable quantities</strong>, and which SIPs to start.</p>
       <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div><label class="text-xs font-medium text-gray-600">Monthly investable amount (₹)</label><input type="number" id="capAmount" value="10000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="500"></div>
-        <div><label class="text-xs font-medium text-gray-600">Horizon</label>
-          <select id="capHorizon" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1">
-            <option value="short">Short term (1-3 mo)</option>
-            <option value="mid">Mid term (3-6 mo)</option>
-            <option value="long" selected>Long term (6 mo-1 yr+)</option>
-          </select>
-        </div>
-        <div><label class="text-xs font-medium text-gray-600">Risk profile</label>
-          <select id="capProfile" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1">
-            <option value="auto" selected>Auto (from Step 1)</option>
-            <option value="conservative">Conservative</option>
-            <option value="moderate">Moderate</option>
-            <option value="aggressive">Aggressive</option>
-          </select>
-        </div>
-      </div>
-      <button onclick="buildCapitalPlan()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Build My Monthly Plan</button>
-      <div id="capResult" class="mt-4"></div>
-    </div>
-
-    <!-- ============ STEP 10: INTRADAY LIVE SELL MONITOR ============ -->
+        <!-- ============ STEP 10: INTRADAY LIVE SELL MONITOR ============ -->
     <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
       <div class="flex items-center justify-between mb-1">
         <h3 class="section-head font-semibold text-gray-900 text-base">Step 10 · Intraday Live Sell Monitor</h3>
@@ -895,6 +903,158 @@
       </div>
       <div id="reitCardsWrap" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
       <div class="mt-3 text-[11px] text-gray-500">*Distribution yield ≈ annual income per unit ÷ unit price (approximate, 2025-26). AUM, yield & occupancy are reference figures for education only — verify on NSE before investing. Not SEBI-registered advice.</div>
+    </div>
+
+    <!-- ============ CRYPTOCURRENCY FOR INDIAN INVESTORS ============ -->
+    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="section-head font-semibold text-gray-900 text-base">🪙 Cryptocurrency — Regulated India Guide (Wealth Advisor View)</h3>
+        <span class="pill bg-purple-100 text-purple-700">New</span>
+      </div>
+      <p class="text-xs text-gray-500 mb-4">Crypto is a high-risk, high-reward asset class. <strong>Allocate max 1-5% of portfolio</strong> only after core equity/debt/gold is in place. Use only FIU-registered Indian exchanges. Tax: 30% flat + 1% TDS on every sale. No loss set-off allowed.</p>
+
+      <!-- Where to Buy (Regulated) -->
+      <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+        <h4 class="font-semibold text-green-900 mb-2 flex items-center gap-1">✅ Where to Buy — FIU-Registered Indian Exchanges (Legal & Safe)</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs">
+            <thead><tr class="text-left text-green-700 border-b border-green-200">
+              <th class="py-2 pr-2">Exchange</th><th class="py-2 pr-2">FIU Status</th><th class="py-2 pr-2">Coins</th><th class="py-2 pr-2">INR Deposit</th><th class="py-2 pr-2">Fees (Maker/Taker)</th><th class="py-2">Best For</th>
+            </tr></thead>
+            <tbody id="cryptoExchangesTable"></tbody>
+          </table>
+        </div>
+        <p class="text-[10px] text-green-700 mt-2"><strong>⚡ Pro Tip:</strong> Use <strong>CoinSwitch / CoinDCX / WazirX</strong> for INR on-ramp (UPI/IMPS), then transfer to <strong>hardware wallet (Ledger/Trezor)</strong> for long-term holding. Never keep large sums on exchange.</p>
+      </div>
+
+      <!-- Documents Needed (KYC) -->
+      <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
+        <h4 class="font-semibold text-blue-900 mb-2 flex items-center gap-1">📄 Documents Needed — Complete KYC Checklist</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
+          <div class="p-3 bg-white rounded border border-blue-100">
+            <p class="font-medium text-blue-800 mb-1">Mandatory (PAN-linked)</p>
+            <ul class="list-disc list-inside text-blue-700 space-y-0.5 text-xs">
+              <li>PAN Card (must match bank name)</li>
+              <li>Aadhaar Card (for eKYC OTP)</li>
+              <li>Bank Account (IFSC + cancelled cheque/statement)</li>
+              <li>Selfie / Liveness check (app-based)</li>
+              <li>Signature on white paper (some exchanges)</li>
+            </ul>
+          </div>
+          <div class="p-3 bg-white rounded border border-blue-100">
+            <p class="font-medium text-blue-800 mb-1">Processing Time & Limits</p>
+            <ul class="list-disc list-inside text-blue-700 space-y-0.5 text-xs">
+              <li>eKYC (Aadhaar OTP): <strong>5-15 mins</strong></li>
+              <li>Full KYC (video): <strong>few hours</strong></li>
+              <li>Daily deposit limit: <strong>₹50K-₹10L</strong> (varies by exchange & tier)</li>
+              <li>Withdrawal limit: <strong>₹2L-₹50L/day</strong></li>
+              <li>Age: <strong>18+</strong> only</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Live Returns (Day/Week) -->
+      <div class="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
+        <h4 class="font-semibold text-purple-900 mb-2 flex items-center gap-1">📈 Live Returns — Top 10 by Market Cap (INR)</h4>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button onclick="fetchCryptoReturns()" id="cryptoRefreshBtn" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs font-medium">🔄 Refresh Live</button>
+          <span id="cryptoReturnsStatus" class="text-xs text-gray-500 self-center"></span>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-xs" id="cryptoReturnsTable">
+            <thead><tr class="text-left text-purple-700 border-b border-purple-200">
+              <th class="py-2 pr-2">Coin</th><th class="py-2 pr-2">Price (₹)</th><th class="py-2 pr-2">24h %</th><th class="py-2 pr-2">7d %</th><th class="py-2 pr-2">30d %</th><th class="py-2 pr-2">Market Cap (₹Cr)</th><th class="py-2">Wealth Advisor View</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Wealth Advisor Strategy -->
+      <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+        <h4 class="font-semibold text-amber-900 mb-2 flex items-center gap-1">💰 Wealth Advisor Strategy — Make Money, Build Wealth, Pay Less Tax</h4>
+        <div class="space-y-3 text-sm text-amber-800">
+          <div class="p-3 bg-white rounded border border-amber-200">
+            <p class="font-medium mb-1">🎯 <strong>Core Allocation (80% of crypto bucket)</strong></p>
+            <p class="text-xs">BTC (50%) + ETH (30%) + SOL/BNB (20%) — Hold 3-5+ years. SIP weekly (₹1K-5K) via CoinDCX/CoinSwitch. Ignore noise. These are "digital gold" + "programmable money" infrastructure.</p>
+          </div>
+          <div class="p-3 bg-white rounded border border-amber-200">
+            <p class="font-medium mb-1">🚀 <strong>Satellite Bets (20% max)</strong></p>
+            <p class="text-xs">High-conviction alts: AI (FET, RNDR), RWA (ONDO, LINK), DeFi (UNI, AAVE), L2s (ARB, OP). Buy only on 40-60% drawdowns from ATH. Size tiny (₹500-2K each).</p>
+          </div>
+          <div class="p-3 bg-white rounded border border-amber-200">
+            <p class="font-medium mb-1">🛡️ <strong>Risk Management</strong></p>
+            <p class="text-xs">Never leverage. No futures/options. Stop-loss mental: -50% from entry = reassess thesis. Rebalance quarterly: trim winners, add to core. Keep 10% stablecoin (USDT/USDC) for crash buying.</p>
+          </div>
+          <div class="p-3 bg-white rounded border border-amber-200">
+            <p class="font-medium mb-1">💸 <strong>Tax Optimization (Legal)</strong></p>
+            <p class="text-xs"><strong>30% flat tax + 1% TDS</strong> on every sale. Strategies: (1) Hold >1 year — still 30% but no TDS on transfer to wallet. (2) Gift to parents (₹50K exempt) — they sell in their lower slab? No, crypto = 30% always. (3) <strong>Best: Don't sell. Borrow against it.</strong> Use centralized lending (Nexo, Ledger Live) or DeFi (Aave) — loan is tax-free, keep upside. (4) Offset via business income if trading as business (complex, need CA).</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Watchouts & Disclaimers -->
+      <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
+        <h4 class="font-semibold text-red-900 mb-2 flex items-center gap-1">⚠️ Watchouts, Disclaimers & Red Flags</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-red-800">
+          <div class="p-3 bg-white rounded border border-red-100">
+            <p class="font-medium mb-1">🚫 Avoid These</p>
+            <ul class="list-disc list-inside space-y-0.5">
+              <li>Foreign exchanges (Binance, Bybit, KuCoin) — <strong>illegal for Indians</strong> under FEMA, no INR support, account freeze risk</li>
+              <li>P2P USDT trades — <strong>bank account freeze risk</strong> (cybercrime-linked funds)</li>
+              <li>Leverage/Futures — 95% retail lose money</li>
+              <li>Meme coins / "guaranteed returns" schemes</li>
+              <li>Sharing seed phrase / private key with anyone</li>
+            </ul>
+          </div>
+          <div class="p-3 bg-white rounded border border-red-100">
+            <p class="font-medium mb-1">⚖️ Legal & Tax Reality</p>
+            <ul class="list-disc list-inside space-y-0.5">
+              <li><strong>30% tax</strong> on gains (Sec 115BBH) — no exemption, no slab benefit</li>
+              <li><strong>1% TDS</strong> on every sell/transfer (Sec 194S) — auto-deducted by exchange</li>
+              <li><strong>No loss set-off</strong> — losses can't offset other crypto gains or any income</li>
+              <li><strong>No 80C/80D</strong> — crypto not eligible for deductions</li>
+              <li>Must declare in ITR (Schedule VDA) — non-filing = notice risk</li>
+            </ul>
+          </div>
+          <div class="p-3 bg-white rounded border border-red-100">
+            <p class="font-medium mb-1">🔐 Security Non-Negotiables</p>
+            <ul class="list-disc list-inside space-y-0.5">
+              <li>Hardware wallet (Ledger/Trezor) for >₹50K holdings</li>
+              <li>2FA = Authenticator app (not SMS)</li>
+              <li>Seed phrase on metal plate, split in 2 locations</li>
+              <li>Exchange = on-ramp only, not storage</li>
+              <li>Test send ₹100 before large transfer</li>
+            </ul>
+          </div>
+          <div class="p-3 bg-white rounded border border-red-100">
+            <p class="font-medium mb-1">📉 Market Reality Check</p>
+            <ul class="list-disc list-inside space-y-0.5">
+              <li>BTC/ETH can drop <strong>50-80% in bear markets</strong> — only invest what you can lose</li>
+              <li>Correlation with NASDAQ = high (risk-on asset)</li>
+              <li>Regulation can change overnight (India bill pending)</li>
+              <li>Exchange insolvency = total loss (not insured like bank FDs)</li>
+              <li>Past returns ≠ future performance</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Quick Start Action Plan -->
+      <div class="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
+        <h4 class="font-semibold text-purple-900 mb-2 flex items-center gap-1">⚡ 15-Minute Quick Start (Do This Today)</h4>
+        <ol class="list-decimal list-inside space-y-1 text-sm text-purple-800">
+          <li>Pick exchange: <strong>CoinSwitch</strong> (easiest UX) or <strong>CoinDCX</strong> (most coins) — download app</li>
+          <li>Complete eKYC: PAN + Aadhaar OTP + Selfie + Bank (5 mins)</li>
+          <li>Deposit ₹1,000 via UPI — buy <strong>₹500 BTC + ₹500 ETH</strong> (first SIP)</li>
+          <li>Set up <strong>weekly auto-SIP</strong> (₹500-2,000) on same coins</li>
+          <li>Order <strong>Ledger Nano S Plus (₹7,999)</strong> from ledger.com — arrive in 7 days</li>
+          <li>When Ledger arrives: transfer coins off exchange → <strong>self-custody</strong></li>
+          <li>Track portfolio in <strong>CoinStats / Delta</strong> app (not exchange)</li>
+          <li>File ITR every July with Schedule VDA — sleep peacefully</li>
+        </ol>
+      </div>
     </div>
 
     <!-- Fundamental Picks -->
@@ -1353,6 +1513,37 @@
       income: { label: '💵 Regular Income Generation', range: 'Your expenses × 12', objective: 'Income', desc: 'For recurring monthly expenses. Prioritise debt/deposits that pay regularly - not equity.' },
       emergency: { label: '🛟 Emergency Fund', range: '6 × monthly expenses', objective: 'Liquidity', desc: 'Never invest this in equity. Keep in liquid/ultra-short funds or bank deposits - instant access.' },
       custom: { label: '✏️ Custom Goal', range: 'Your Amount', objective: 'Varies', desc: 'Any productive goal - parents\' healthcare, sibling marriage, skill upgradation, real estate investment.' }
+    };
+
+    // ============ CRYPTOCURRENCY DATA (India) ============
+    const CRYPTO_EXCHANGES = [
+      { name: 'CoinSwitch', fiu: '✅ Registered', coins: '100+', deposit: 'UPI, IMPS, NEFT', fees: '0% / 0.1%', best: 'Beginners, SIP, best UX', url: 'https://coinswitch.co' },
+      { name: 'CoinDCX', fiu: '✅ Registered', coins: '200+', deposit: 'UPI, IMPS, NEFT', fees: '0.02% / 0.04%', best: 'Active traders, most altcoins', url: 'https://coindcx.com' },
+      { name: 'WazirX', fiu: '✅ Registered', coins: '250+', deposit: 'UPI, IMPS, NEFT', fees: '0.1% / 0.1%', best: 'P2P (legacy), high liquidity', url: 'https://wazirx.com' },
+      { name: 'ZebPay', fiu: '✅ Registered', coins: '150+', deposit: 'UPI, IMPS, NEFT', fees: '0.15% / 0.25%', best: 'Simple buy/sell, staking', url: 'https://zebpay.com' },
+      { name: 'Bitbns', fiu: '✅ Registered', coins: '400+', deposit: 'UPI, IMPS, NEFT', fees: '0.1% / 0.1%', best: 'Most altcoins, lending', url: 'https://bitbns.com' },
+      { name: 'Giottus', fiu: '✅ Registered', coins: '100+', deposit: 'UPI, IMPS, NEFT', fees: '0.1% / 0.2%', best: 'South India focus, SIP', url: 'https://giottus.com' }
+    ];
+
+    const CRYPTO_TOP_COINS = [
+      { id: 'bitcoin', symbol: 'BTC', name: 'Bitcoin', coingecko: 'bitcoin' },
+      { id: 'ethereum', symbol: 'ETH', name: 'Ethereum', coingecko: 'ethereum' },
+      { id: 'tether', symbol: 'USDT', name: 'Tether', coingecko: 'tether' },
+      { id: 'bnb', symbol: 'BNB', name: 'BNB', coingecko: 'binancecoin' },
+      { id: 'solana', symbol: 'SOL', name: 'Solana', coingecko: 'solana' },
+      { id: 'xrp', symbol: 'XRP', name: 'XRP', coingecko: 'ripple' },
+      { id: 'usdc', symbol: 'USDC', name: 'USD Coin', coingecko: 'usd-coin' },
+      { id: 'steth', symbol: 'stETH', name: 'Lido Staked ETH', coingecko: 'staked-ether' },
+      { id: 'tron', symbol: 'TRX', name: 'TRON', coingecko: 'tron' },
+      { id: 'dogecoin', symbol: 'DOGE', name: 'Dogecoin', coingecko: 'dogecoin' }
+    ];
+
+    // Wealth Advisor Coin Categories
+    const CRYPTO_CATEGORIES = {
+      core: { label: '🏛️ Core (Digital Gold + Infrastructure)', coins: ['BTC', 'ETH'], allocation: '80%', horizon: '3-5+ years', thesis: 'Store of value + programmable money base layer. Lowest risk in crypto.' },
+      infrastructure: { label: '⚙️ Infrastructure (L1/L2/DeFi/Oracle)', coins: ['SOL', 'BNB', 'ARB', 'OP', 'LINK', 'UNI', 'AAVE'], allocation: '15%', horizon: '2-4 years', thesis: 'Ecosystem adoption = revenue. Cash flows from fees. Higher beta than core.' },
+      narrative: { label: '🚀 Narrative Bets (AI/RWA/DePIN)', coins: ['FET', 'RNDR', 'ONDO', 'TAO', 'RENDER'], allocation: '5% max', horizon: '1-3 years', thesis: 'Hot sectors. High failure rate. Only on deep drawdowns. Size tiny.' },
+      stable: { label: '💵 Stablecoins (Dry Powder)', coins: ['USDT', 'USDC'], allocation: '10%', horizon: 'Any', thesis: 'Crash buying power. Earn 5-10% yield via Aave/Ledger Live. Not an investment.' }
     };
 
     // Stock universe categorized by price range (Indian stocks)
@@ -2831,6 +3022,134 @@
       out.mode = useProxy ? 'proxy' : 'twelve';
       return out;
     }
+
+    // ============ CRYPTOCURRENCY FUNCTIONS ============
+    const cryptoReturnsCache = {};
+    async function fetchCryptoReturns() {
+      const btn = document.getElementById('cryptoRefreshBtn');
+      const status = document.getElementById('cryptoReturnsStatus');
+      const tbody = document.querySelector('#cryptoReturnsTable tbody');
+      
+      btn.disabled = true;
+      btn.textContent = 'Fetching...';
+      status.textContent = 'Fetching live prices from CoinGecko...';
+
+      try {
+        const coinIds = CRYPTO_TOP_COINS.map(c => c.coingecko).join(',');
+        const url = `https://api.coingecko.com/api/v3/coins/markets?vs_currency=inr&ids=${coinIds}&order=market_cap_desc&per_page=10&page=1&sparkline=false&price_change_percentage=24h,7d,30d`;
+        
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('CoinGecko API error');
+        const data = await res.json();
+        
+        renderCryptoReturnsTable(data);
+        status.textContent = `Updated ${new Date().toLocaleTimeString()} — Source: CoinGecko (free, no key)`;
+      } catch (e) {
+        console.error('Crypto returns fetch error:', e);
+        status.textContent = 'Error fetching live data — showing cached/mock';
+        renderCryptoReturnsTable(getMockCryptoData());
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '🔄 Refresh Live';
+      }
+    }
+
+    function getMockCryptoData() {
+      return [
+        { id: 'bitcoin', symbol: 'btc', current_price: 5800000, price_change_percentage_24h_in_currency: 1.2, price_change_percentage_7d_in_currency: -3.5, price_change_percentage_30d_in_currency: 12.8, market_cap: 114000000000000 },
+        { id: 'ethereum', symbol: 'eth', current_price: 295000, price_change_percentage_24h_in_currency: 0.8, price_change_percentage_7d_in_currency: -2.1, price_change_percentage_30d_in_currency: 8.4, market_cap: 35500000000000 },
+        { id: 'tether', symbol: 'usdt', current_price: 84.5, price_change_percentage_24h_in_currency: 0.01, price_change_percentage_7d_in_currency: 0.02, price_change_percentage_30d_in_currency: 0.1, market_cap: 9500000000000 },
+        { id: 'binancecoin', symbol: 'bnb', current_price: 48500, price_change_percentage_24h_in_currency: 1.5, price_change_percentage_7d_in_currency: 2.3, price_change_percentage_30d_in_currency: 15.2, market_cap: 7500000000000 },
+        { id: 'solana', symbol: 'sol', current_price: 14200, price_change_percentage_24h_in_currency: -0.5, price_change_percentage_7d_in_currency: 5.7, price_change_percentage_30d_in_currency: 28.4, market_cap: 6600000000000 },
+        { id: 'ripple', symbol: 'xrp', current_price: 52.5, price_change_percentage_24h_in_currency: 2.1, price_change_percentage_7d_in_currency: -1.8, price_change_percentage_30d_in_currency: 22.1, market_cap: 2900000000000 },
+        { id: 'usd-coin', symbol: 'usdc', current_price: 84.5, price_change_percentage_24h_in_currency: 0.0, price_change_percentage_7d_in_currency: 0.0, price_change_percentage_30d_in_currency: 0.0, market_cap: 2800000000000 },
+        { id: 'staked-ether', symbol: 'steth', current_price: 298000, price_change_percentage_24h_in_currency: 0.9, price_change_percentage_7d_in_currency: -1.9, price_change_percentage_30d_in_currency: 8.7, market_cap: 2700000000000 },
+        { id: 'tron', symbol: 'trx', current_price: 11.2, price_change_percentage_24h_in_currency: 0.3, price_change_percentage_7d_in_currency: 1.2, price_change_percentage_30d_in_currency: 4.5, market_cap: 1000000000000 },
+        { id: 'dogecoin', symbol: 'doge', current_price: 13.8, price_change_percentage_24h_in_currency: 3.2, price_change_percentage_7d_in_currency: 8.4, price_change_percentage_30d_in_currency: 35.6, market_cap: 2000000000000 }
+      ];
+    }
+
+    function renderCryptoReturnsTable(data) {
+      const tbody = document.querySelector('#cryptoReturnsTable tbody');
+      if (!tbody) return;
+      
+      const coinConfig = {};
+      CRYPTO_TOP_COINS.forEach(c => { coinConfig[c.coingecko] = c; });
+      
+      tbody.innerHTML = data.map(coin => {
+        const config = coinConfig[coin.id] || { symbol: coin.symbol.toUpperCase(), name: coin.id };
+        const p24h = coin.price_change_percentage_24h_in_currency || 0;
+        const p7d = coin.price_change_percentage_7d_in_currency || 0;
+        const p30d = coin.price_change_percentage_30d_in_currency || 0;
+        
+        let advisorView = '', advisorClass = '';
+        const symbol = config.symbol;
+        
+        if (['BTC', 'ETH'].includes(symbol)) {
+          advisorView = '🏛️ CORE — Buy every dip. SIP weekly. Hold 5+ years. Digital gold + programmable money.';
+          advisorClass = 'bg-green-100 text-green-800';
+        } else if (['SOL', 'BNB', 'ARB', 'OP', 'LINK', 'UNI', 'AAVE'].includes(symbol)) {
+          advisorView = '⚙️ INFRA — Accumulate on 30-50% drawdowns. Ecosystem revenue play. 2-4 yr horizon.';
+          advisorClass = 'bg-blue-100 text-blue-800';
+        } else if (['FET', 'RNDR', 'ONDO', 'TAO', 'RENDER'].includes(symbol)) {
+          advisorView = '🚀 NARRATIVE — High risk. Only ≤2% portfolio. Buy -60% from ATH. Quick flip or hold 1-3 yr.';
+          advisorClass = 'bg-purple-100 text-purple-800';
+        } else if (['USDT', 'USDC'].includes(symbol)) {
+          advisorView = '💵 STABLE — Dry powder. Deploy on crashes. Earn 5-10% yield on Aave/Ledger.';
+          advisorClass = 'bg-gray-100 text-gray-800';
+        } else {
+          advisorView = '📊 SPEC — High volatility. No SIP. Trade only with risk capital. Tight stops.';
+          advisorClass = 'bg-amber-100 text-amber-800';
+        }
+        
+        const formatINR = (num) => {
+          if (num >= 1e7) return '₹' + (num/1e7).toFixed(2) + ' Cr';
+          if (num >= 1e5) return '₹' + (num/1e5).toFixed(2) + ' L';
+          return '₹' + num.toLocaleString('en-IN', { maximumFractionDigits: 2 });
+        };
+        
+        const formatPct = (pct) => {
+          if (pct === null || pct === undefined) return '—';
+          const prefix = pct >= 0 ? '+' : '';
+          const color = pct >= 0 ? 'text-green-600' : 'text-red-600';
+          return `<span class="font-semibold ${color}">${prefix}${pct.toFixed(2)}%</span>`;
+        };
+        
+        return `
+          <tr class="border-t border-purple-100 hover:bg-purple-50">
+            <td class="py-2 pr-2 font-semibold text-purple-900">${config.symbol} <span class="text-[10px] font-normal text-gray-500">(${config.name})</span></td>
+            <td class="py-2 pr-2 font-mono">${formatINR(coin.current_price)}</td>
+            <td class="py-2 pr-2 text-center">${formatPct(p24h)}</td>
+            <td class="py-2 pr-2 text-center">${formatPct(p7d)}</td>
+            <td class="py-2 pr-2 text-center">${formatPct(p30d)}</td>
+            <td class="py-2 pr-2 font-mono">${formatINR(coin.market_cap)}</td>
+            <td class="py-2 pr-2"><span class="px-2 py-0.5 rounded text-[10px] font-medium ${advisorClass}">${advisorView}</span></td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderCryptoExchangesTable() {
+      const tbody = document.querySelector('#cryptoExchangesTable');
+      if (!tbody) return;
+      
+      tbody.innerHTML = CRYPTO_EXCHANGES.map(ex => `
+        <tr class="border-t border-green-100 hover:bg-green-50">
+          <td class="py-2 pr-2 font-semibold text-green-900">${ex.name}</td>
+          <td class="py-2 pr-2 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-medium bg-green-100 text-green-800">${ex.fiu}</span></td>
+          <td class="py-2 pr-2 text-center">${ex.coins}</td>
+          <td class="py-2 pr-2">${ex.deposit}</td>
+          <td class="py-2 pr-2 font-mono">${ex.fees}</td>
+          <td class="py-2 pr-2 text-gray-700">${ex.best}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Auto-render on load
+    document.addEventListener('DOMContentLoaded', () => {
+      renderCryptoExchangesTable();
+      setTimeout(() => fetchCryptoReturns(), 2000);
+    });
 
     async function fetchAllData() {
       const btn = document.getElementById('refreshBtn');
