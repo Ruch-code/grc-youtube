@@ -2467,11 +2467,14 @@
       nseSignal.textContent = breadthPositive ? 'Bullish Breadth ✓' : 'Bearish Breadth ✗';
       nseSignal.className = `font-semibold px-2.5 py-0.5 rounded-full text-xs ${breadthPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`;
 
-      document.getElementById('commodityGold').textContent = `₹${formatNumber(data.commodities.gold, 0)}`;
-      document.getElementById('commoditySilver').textContent = `₹${formatNumber(data.commodities.silver, 0)}`;
-      document.getElementById('commodityOil').textContent = `₹${formatNumber(data.commodities.oil, 0)}`;
+      const goldPrice = data.commodities.gold?.current ?? data.commodities.gold ?? 0;
+      const silverPrice = data.commodities.silver?.current ?? data.commodities.silver ?? 0;
+      const oilPrice = data.commodities.oil?.current ?? data.commodities.oil ?? 0;
+      document.getElementById('commodityGold').textContent = `₹${formatNumber(goldPrice, 0)}`;
+      document.getElementById('commoditySilver').textContent = `₹${formatNumber(silverPrice, 0)}`;
+      document.getElementById('commodityOil').textContent = `₹${formatNumber(oilPrice, 0)}`;
       const commoditySignal = document.getElementById('commoditySignal');
-      const commodityBullish = data.commodities.gold < 73000 && data.commodities.oil < 7500;
+      const commodityBullish = goldPrice < 73000 && oilPrice < 7500;
       commoditySignal.textContent = commodityBullish ? 'Supportive ✓' : 'Caution ✗';
       commoditySignal.className = `font-semibold px-2.5 py-0.5 rounded-full text-xs ${commodityBullish ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`;
 
@@ -2488,7 +2491,7 @@
       maxScore += 25; const globalAvg = (data.nasdaq.change + data.dow.change) / 2; if (globalAvg > 0) { score += 25; reasons.push('Global +25'); } else { reasons.push('Global +0'); }
       maxScore += 20; if (data.vix.current < 15) { score += 20; reasons.push('VIX +20'); } else { reasons.push('VIX +0'); }
       maxScore += 15; if (data.nse.advances > data.nse.declines) { score += 15; reasons.push('Breadth +15'); } else { reasons.push('Breadth +0'); }
-      maxScore += 10; const commodityBullish = data.commodities.gold < 73000 && data.commodities.oil < 7500; if (commodityBullish) { score += 10; reasons.push('Comm +10'); } else { reasons.push('Comm +0'); }
+      maxScore += 10; const cGold = data.commodities.gold?.current ?? data.commodities.gold ?? 0; const cOil = data.commodities.oil?.current ?? data.commodities.oil ?? 0; const commodityBullish = cGold < 73000 && cOil < 7500; if (commodityBullish) { score += 10; reasons.push('Comm +10'); } else { reasons.push('Comm +0'); }
       const percentage = (score / maxScore) * 100;
       const banner = document.getElementById('recommendationBanner');
       const actionEl = document.getElementById('recAction');
@@ -2529,14 +2532,16 @@
       else f('Geopolitics', 'up', `Calm (L${geoLvl}) — supportive`);
 
       // Oil price impact (high oil = inflation risk = negative for India)
-      const oilPrice = parseFloat(document.getElementById('geoOil')?.value) || (data.commodities?.oil || 7200);
+      const oilPriceInput = parseFloat(document.getElementById('geoOil')?.value);
+      const oilPrice = oilPriceInput || (data.commodities?.oil?.current ?? data.commodities?.oil || 7200);
       if (oilPrice > 8500) f('Oil Price', 'down', `₹${oilPrice.toLocaleString()} — high inflation risk`);
       else if (oilPrice > 7500) f('Oil Price', 'down', `₹${oilPrice.toLocaleString()} — rising`);
       else if (oilPrice > 7000) f('Oil Price', 'flat', `₹${oilPrice.toLocaleString()} — neutral`);
       else f('Oil Price', 'up', `₹${oilPrice.toLocaleString()} — supportive (low)`);
 
       // Gold price (high gold = fear)
-      const goldPrice = parseFloat(document.getElementById('geoGold')?.value) || (data.commodities?.gold || 72500);
+      const goldPriceInput = parseFloat(document.getElementById('geoGold')?.value);
+      const goldPrice = goldPriceInput || (data.commodities?.gold?.current ?? data.commodities?.gold || 72500);
       if (goldPrice > 78000) f('Gold Price', 'down', `₹${goldPrice.toLocaleString()}/10g — extreme fear`);
       else if (goldPrice > 75000) f('Gold Price', 'down', `₹${goldPrice.toLocaleString()}/10g — elevated`);
       else f('Gold Price', 'flat', `₹${goldPrice.toLocaleString()}/10g — normal`);
@@ -4064,10 +4069,11 @@
       else if (ga < 0) { score += 1; reasons.push('Global cues slightly down'); }
       if ((data.sgx?.change || 0) < -0.5) { score += 1; reasons.push('Nifty/SGX falling'); }
       if ((data.nse?.declines || 0) > (data.nse?.advances || 0)) { score += 1; reasons.push('Weak breadth'); }
-      const gold = data.commodities?.gold || 72000;
+      const gold = data.commodities?.gold?.current ?? data.commodities?.gold || 72000;
       if (gold > 78000) { score += 1; reasons.push('Gold at extreme high (fear bid)'); }
       else if (gold > 75000) { score += 1; reasons.push('Gold elevated'); }
-      if ((data.commodities?.oil || 7200) > 7800) { score += 1; reasons.push('Oil spiking (supply fear)'); }
+      const oil = data.commodities?.oil?.current ?? data.commodities?.oil || 7200;
+      if (oil > 7800) { score += 1; reasons.push('Oil spiking (supply fear)'); }
       const lvl = Math.max(1, Math.min(5, 1 + Math.round(score / 2)));
       return { lvl, reasons, score };
     }
@@ -4091,8 +4097,10 @@
 
     function syncGeoCommodities(data) {
       if (!data || !data.commodities) return;
-      if (!geoManual.gold && data.commodities.gold) document.getElementById('geoGold').value = Math.round(data.commodities.gold);
-      if (!geoManual.oil && data.commodities.oil) document.getElementById('geoOil').value = Math.round(data.commodities.oil);
+      const g = data.commodities.gold?.current ?? data.commodities.gold;
+      const o = data.commodities.oil?.current ?? data.commodities.oil;
+      if (!geoManual.gold && g) document.getElementById('geoGold').value = Math.round(g);
+      if (!geoManual.oil && o) document.getElementById('geoOil').value = Math.round(o);
       updateGeoOutlook();
     }
 
