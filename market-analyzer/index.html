@@ -6,1107 +6,427 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="PreMarket">
-  <meta name="theme-color" content="#1e3a8a">
+  <meta name="theme-color" content="#e0115f">
   <title>Pre-Market Analyzer & Portfolio Planner</title>
-  <meta name="description" content="Pre-market cues → position actions, plus a 12-step framework: risk, allocation, goals, war/metals context, horizon picks, REITs & defence sectors, mutual funds, fees, capital sizing, intraday exits and full portfolio tracking.">
-  <meta property="og:type" content="website">
-  <meta property="og:url" content="https://premarket-analyzer.pages.dev">
-  <meta property="og:title" content="Pre-Market Analyzer & Portfolio Planner">
-  <meta property="og:description" content="Free pre-market analyzer: live cues, REIT & defence sector picks, momentum screener, fees, capital sizing, intraday monitor and portfolio tracking — all in your browser.">
-  <meta property="og:image" content="https://premarket-analyzer.pages.dev/assets/me.png">
-  <meta name="twitter:card" content="summary">
+  <meta name="description" content="Pre-market cues → position actions, plus a 12-step framework: risk, allocation, goals, war/metals context, horizon picks, mutual funds, fees, capital sizing, intraday exits and full portfolio tracking.">
   <link rel="icon" type="image/png" href="assets/me.png">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="assets/me.png">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <style>
-    * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
-    body { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); }
-    .top-safe { padding-top: env(safe-area-inset-top); }
-    .bottom-safe { padding-bottom: env(safe-area-inset-bottom); }
-    .indicator-card { transition: all 0.3s ease; }
-    .indicator-card:hover { transform: translateY(-2px); box-shadow: 0 10px 25px -5px rgba(0,0,0,0.1); }
-    .pulse { animation: pulse 2s infinite; }
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
-    .bg-grid { background-image: linear-gradient(rgba(0,0,0,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0,0,0,0.03) 1px, transparent 1px); background-size: 24px 24px; }
-    .stock-card { transition: all 0.2s ease; }
-    .stock-card:active { transform: scale(0.98); }
-    .range-bar { height: 6px; border-radius: 3px; background: linear-gradient(90deg, #ef4444, #f59e0b, #22c55e); }
-    .range-marker { position: absolute; top: -4px; width: 2px; height: 14px; background: #374151; border-radius: 1px; }
-    .info-tooltip { position: relative; cursor: help; font-size: 10px; color: #64748b; }
-    .info-tooltip:hover::after { content: attr(data-tooltip); position: absolute; bottom: 125%; left: 50%; transform: translateX(-50%); width: max-content; max-width: 300px; background: #1e293b; color: white; padding: 8px 10px; border-radius: 6px; font-size: 11px; line-height: 1.4; white-space: normal; z-index: 100; box-shadow: 0 10px 25px rgba(0,0,0,0.2); }
-    .info-tooltip:hover::before { content: ''; position: absolute; bottom: 118%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: #1e293b; z-index: 100; }
-    .alloc-bar { display: flex; height: 22px; border-radius: 6px; overflow: hidden; }
-    .alloc-seg { display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: white; }
-    .risk-option { transition: all 0.15s ease; cursor: pointer; }
-    .risk-option.selected { border-color: #2563eb; background: #eff6ff; box-shadow: 0 0 0 1px #2563eb; }
-    .section-head { border-left: 4px solid #2563eb; padding-left: 12px; }
-    .pill { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
-    .step-toggle { margin-left: 8px; width: 22px; height: 22px; border-radius: 6px; border: 1px solid #d1d5db; background: #ffffff; color: #6b7280; font-size: 10px; line-height: 1; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; flex-shrink: 0; }
-    .step-toggle:hover { background: #f3f4f6; }
-    .collapsible .step-body { transition: opacity .2s ease; }
-    .collapsible.collapsed .step-body { display: none; }
-    .pro-locked { position: relative; }
-    .pro-lock-overlay {
-      position: absolute; inset: 0; z-index: 20;
-      background: rgba(249, 250, 251, 0.35);
-      backdrop-filter: blur(3px);
-      -webkit-backdrop-filter: blur(3px);
-      border-radius: 12px;
+    * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
+    html, body { height: 100%; overflow: hidden; margin: 0; }
+    body { background: linear-gradient(145deg, #fffdf8 0%, #fef7ee 50%, #fdfdf5 100%); }
+    
+    /* ===== GEMSTONE COLOR SYSTEM ===== */
+    :root {
+      --ruby: #e0115f;
+      --ruby-light: #ff6b9d;
+      --ruby-glow: #e0115f;
+      --ruby-bg: #fdf2f8;
+      --ruby-border: #fce7f3;
+      
+      --citrine: #e4d00a;
+      --citrine-light: #ffdf00;
+      --citrine-glow: #f5c542;
+      --citrine-bg: #fefce8;
+      --citrine-border: #fef3c7;
+      
+      --peridot: #87a922;
+      --peridot-light: #a8d035;
+      --peridot-glow: #84cc16;
+      --peridot-bg: #f7fee7;
+      --peridot-border: #dcfce7;
+      
+      --obsidian: #0f172a;
+      --pearl: #fafafa;
+      --mist: #f1f5f9;
     }
-    .dark .pro-lock-overlay { background: rgba(17, 24, 39, 0.45); }
-    .pro-lock-overlay .pro-lock-box {
-      position: absolute; top: 10px; left: 10px; right: 10px;
-      display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px;
-      padding: 10px 14px;
-      background: linear-gradient(90deg, #4f46e5, #7c3aed);
-      border-radius: 12px;
-      box-shadow: 0 8px 20px rgba(79, 70, 229, 0.25);
-    }
-    .pro-lock-note { margin-top: 8px; }
-    .pop-in { animation: popIn .35s ease; }
-    @keyframes popIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
-    .avatar-badge {
-      width: 88px; height: 88px; border-radius: 9999px; flex-shrink: 0;
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
-      background: radial-gradient(circle at 30% 20%, #fdf4ff, #ede9fe 45%, #fce7f3 85%);
-      border: 3px solid #e9d5ff;
-      box-shadow: 0 0 28px rgba(217,70,239,.35);
-      animation: floaty 3.5s ease-in-out infinite;
-      user-select: none;
-    }
-    .avatar-badge img, .side-girl img { width: 100%; height: 100%; object-fit: cover; }
-    .side-girl {
-      position: fixed; right: 14px; bottom: 14px; z-index: 40;
-      width: 48px; height: 48px; border-radius: 9999px;
-      display: flex; align-items: center; justify-content: center;
-      overflow: hidden;
-      background: radial-gradient(circle at 30% 20%, #fdf4ff, #ede9fe 45%, #fce7f3);
-      border: 2px solid #e9d5ff;
-      box-shadow: 0 6px 20px rgba(217,70,239,.3);
-      animation: floaty 3.5s ease-in-out infinite;
-      user-select: none;
-    }
-    @keyframes floaty { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-6px); } }
-
-    /* ===== DARK MODE (toggled via .dark on <html>) ===== */
+    
     .dark { color-scheme: dark; }
-    .dark body { background-color: #0b1120; }
-    .dark .bg-grid { background-image: linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px); }
-    .dark .bg-white { background: #111827 !important; }
-    .dark .bg-gray-50 { background: #0f172a !important; }
-    .dark .bg-gray-100 { background: #1e293b !important; }
-    .dark .bg-gray-200 { background: #334155 !important; }
-    .dark .border-gray-100, .dark .border-gray-200, .dark .border-gray-300 { border-color: #1f2937 !important; }
-    .dark .text-gray-900 { color: #f1f5f9 !important; }
-    .dark .text-gray-800 { color: #e2e8f0 !important; }
-    .dark .text-gray-700 { color: #cbd5e1 !important; }
-    .dark .text-gray-600 { color: #94a3b8 !important; }
-    .dark .text-gray-500 { color: #9ca3af !important; }
-    .dark .text-gray-400 { color: #6b7280 !important; }
-    .dark .bg-indigo-50 { background: #1e1b4b !important; }
-    .dark .bg-indigo-100 { background: #312e81 !important; }
-    .dark .text-indigo-700 { color: #c7d2fe !important; }
-    .dark .text-indigo-900 { color: #e0e7ff !important; }
-    .dark .bg-purple-50 { background: #2e1065 !important; }
-    .dark .bg-purple-100 { background: #4c1d95 !important; }
-    .dark .bg-blue-50 { background: #172554 !important; }
-    .dark .bg-blue-100 { background: #1e3a8a !important; }
-    .dark .text-blue-900 { color: #dbeafe !important; }
-    .dark .bg-green-50 { background: #052e16 !important; }
-    .dark .bg-green-100 { background: #14532d !important; }
-    .dark .text-green-900 { color: #bbf7d0 !important; }
-    .dark .bg-red-50 { background: #450a0a !important; }
-    .dark .bg-red-100 { background: #7f1d1d !important; }
-    .dark .text-red-900 { color: #fecaca !important; }
-    .dark .bg-yellow-50 { background: #451a03 !important; }
-    .dark .bg-yellow-100 { background: #713f12 !important; }
-    .dark .text-yellow-900 { color: #fef3c7 !important; }
-    .dark .bg-orange-50 { background: #431407 !important; }
-    .dark .bg-orange-100 { background: #7c2d12 !important; }
-    .dark .text-orange-600 { color: #fdba74 !important; }
-    .dark input, .dark select, .dark textarea { color-scheme: dark; }
-    .dark .info-tooltip:hover::after { background: #334155; }
-    .dark .step-toggle { background: #1f2937; border-color: #374151; color: #e5e7eb; }
-    .dark .step-toggle:hover { background: #374151; }
+    .dark body { background: linear-gradient(145deg, #0c0a09 0%, #1a1612 50%, #0f0d0a 100%); }
+    
+    /* ===== FLIPBOOK ENGINE ===== */
+    .flipbook-container {
+      perspective: 2500px;
+      width: 100%;
+      max-width: 980px;
+      height: 100vh;
+      max-height: 100vh;
+      margin: 0 auto;
+      position: relative;
+    }
+    
+    .flipbook {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+    
+    .flip-page {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      backface-visibility: hidden;
+      border-radius: 20px;
+      box-shadow: 
+        0 25px 80px rgba(0,0,0,0.12),
+        0 0 0 1px rgba(0,0,0,0.04),
+        inset 0 1px 0 rgba(255,255,255,0.6);
+      background: var(--pearl);
+      overflow: hidden;
+    }
+    
+    .page-front { z-index: 10; transform-origin: left center; }
+    .page-back { z-index: 5; transform: rotateY(-180deg); transform-origin: right center; }
+    .page-front, .page-back { transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1); }
+    
+    .flip-page.flipped .page-front { transform: rotateY(180deg); z-index: 5; }
+    .flip-page.flipped .page-back { transform: rotateY(0deg); z-index: 10; }
+    
+    .page-content {
+      width: 100%;
+      height: 100%;
+      padding: 28px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    /* ===== TOP BAR ===== */
+    .top-bar {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 90;
+      padding: 10px 18px;
+      background: rgba(255,255,255,0.9);
+      backdrop-filter: blur(20px);
+      border-radius: 14px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04);
+      max-width: 980px;
+      margin: 0 auto;
+    }
+    .dark .top-bar { background: rgba(15,12,10,0.9); border-color: rgba(255,255,255,0.06); }
+    
+    .brand-badge {
+      width: 38px; height: 38px; border-radius: 11px;
+      background: linear-gradient(135deg, var(--ruby) 0%, var(--citrine) 50%, var(--peridot) 100%);
+      display: flex; align-items: center; justify-content: center;
+      animation: floaty 4s ease-in-out infinite;
+      box-shadow: 0 4px 20px rgba(224,17,95,0.3);
+    }
+    .brand-text h1 { font-size: 1rem; font-weight: 900; color: var(--obsidian); line-height: 1.1; }
+    .brand-text span { font-size: 0.6rem; font-weight: 700; color: var(--ruby); text-transform: uppercase; letter-spacing: 0.08em; }
+    .brand-text p { font-size: 0.6rem; color: #64748b; margin-top: 1px; }
+    .dark .brand-text h1 { color: var(--pearl); }
+    .dark .brand-text p { color: #94a3b8; }
+    
+    .top-btn {
+      padding: 7px 14px; border-radius: 10px; font-size: 0.7rem; font-weight: 700;
+      border: none; cursor: pointer; transition: all 0.18s ease;
+      display: inline-flex; align-items: center; gap: 5px; white-space: nowrap;
+    }
+    .top-btn.ruby { background: linear-gradient(135deg, var(--ruby), var(--ruby-light)); color: white; box-shadow: 0 3px 14px rgba(224,17,95,0.35); }
+    .top-btn.ruby:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(224,17,95,0.45); }
+    .top-btn.citrine { background: linear-gradient(135deg, var(--citrine), var(--citrine-glow)); color: var(--obsidian); box-shadow: 0 3px 14px rgba(228,208,10,0.35); }
+    .top-btn.citrine:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(228,208,10,0.45); }
+    .top-btn.peridot { background: linear-gradient(135deg, var(--peridot), var(--peridot-light)); color: white; box-shadow: 0 3px 14px rgba(135,169,34,0.35); }
+    .top-btn.peridot:hover { transform: translateY(-1px); box-shadow: 0 6px 22px rgba(135,169,34,0.45); }
+    .top-btn.ghost { background: transparent; color: #64748b; }
+    .top-btn.ghost:hover { background: var(--mist); }
+    .dark .top-btn.ghost { color: #94a3b8; }
+    .dark .top-btn.ghost:hover { background: #1e293b; }
+    
+    /* ===== FLIP NAVIGATION ===== */
+    .flip-nav {
+      position: fixed;
+      bottom: 18px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      z-index: 100;
+      padding: 10px 20px;
+      background: rgba(255,255,255,0.92);
+      backdrop-filter: blur(20px);
+      border-radius: 50px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+      border: 1px solid rgba(0,0,0,0.06);
+    }
+    .dark .flip-nav { background: rgba(15,12,10,0.92); border-color: rgba(255,255,255,0.08); }
+    
+    .nav-btn {
+      width: 40px; height: 40px; border-radius: 50%;
+      border: none; background: linear-gradient(135deg, var(--ruby), var(--ruby-light));
+      color: white; display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.18s ease;
+      box-shadow: 0 3px 14px rgba(224,17,95,0.35);
+    }
+    .nav-btn:hover:not(:disabled) { transform: scale(1.1); box-shadow: 0 6px 22px rgba(224,17,95,0.45); }
+    .nav-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .nav-btn:active { transform: scale(0.92); }
+    
+    .page-indicator { display: flex; gap: 6px; padding: 0 6px; }
+    .page-dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--mist); cursor: pointer;
+      transition: all 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .page-dot.active {
+      background: linear-gradient(135deg, var(--ruby), var(--citrine));
+      transform: scale(1.4); box-shadow: 0 0 12px rgba(224,17,95,0.5);
+    }
+    .dark .page-dot { background: #334155; }
+    
+    .page-counter {
+      font-size: 0.68rem; font-weight: 800; color: #64748b;
+      font-variant-numeric: tabular-nums; min-width: 50px; text-align: center;
+    }
+    .dark .page-counter { color: #94a3b8; }
+    
+    /* ===== FLOATING ACTION BUTTON ===== */
+    .fab {
+      position: fixed;
+      right: 20px;
+      bottom: 90px;
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--citrine), var(--citrine-glow));
+      color: var(--obsidian);
+      border: none; cursor: pointer;
+      box-shadow: 0 8px 32px rgba(228,208,10,0.4);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.15rem;
+      transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+      animation: floaty 4s ease-in-out infinite;
+      z-index: 80;
+    }
+    .fab:hover { transform: scale(1.12) rotate(12deg); box-shadow: 0 14px 40px rgba(228,208,10,0.5); }
+    
+    @keyframes floaty { 0%,100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-6px) rotate(0); } }
+    
+    /* ===== SWIPE HINT ===== */
+    .swipe-hint {
+      position: fixed; left: 50%; bottom: 70px;
+      transform: translateX(-50%);
+      font-size: 0.65rem; color: #94a3b8;
+      padding: 5px 14px;
+      background: rgba(255,255,255,0.85);
+      backdrop-filter: blur(12px);
+      border-radius: 20px;
+      animation: fadeInOut 4s ease-in-out;
+      pointer-events: none; z-index: 60;
+    }
+    @keyframes fadeInOut { 0%,100% { opacity: 0; } 20%,80% { opacity: 1; } }
+    .dark .swipe-hint { background: rgba(15,12,10,0.85); color: #64748b; }
+    
+    /* ===== PAGE STYLING ===== */
+    .page-header {
+      flex-shrink: 0;
+      margin-bottom: 22px;
+      padding-bottom: 16px;
+      border-bottom: 2px solid;
+      position: relative;
+    }
+    .page-header::after {
+      content: '';
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 60px;
+      height: 2px;
+      background: currentColor;
+      border-radius: 1px;
+    }
+    
+    .page-title {
+      font-size: 1.35rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      line-height: 1.2;
+    }
+    .page-subtitle {
+      font-size: 0.8rem;
+      font-weight: 500;
+      margin-top: 6px;
+      opacity: 0.8;
+    }
+    
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 18px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      border: 1px solid rgba(0,0,0,0.04);
+      transition: all 0.25s ease;
+    }
+    .card:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(0,0,0,0.09); }
+    .dark .card { background: #1a1612; border-color: rgba(255,255,255,0.06); box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+    .dark .card:hover { box-shadow: 0 10px 30px rgba(0,0,0,0.4); }
+    
+    .card-ruby { border-left: 4px solid var(--ruby); }
+    .card-citrine { border-left: 4px solid var(--citrine); }
+    .card-peridot { border-left: 4px solid var(--peridot); }
+    
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 0.62rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .badge-ruby { background: var(--ruby-bg); color: var(--ruby); border: 1px solid var(--ruby-border); }
+    .badge-citrine { background: var(--citrine-bg); color: #927b00; border: 1px solid var(--citrine-border); }
+    .badge-peridot { background: var(--peridot-bg); color: var(--peridot); border: 1px solid var(--peridot-border); }
+    .badge-obsidian { background: var(--obsidian); color: white; }
+    
+    .metric {
+      background: linear-gradient(135deg, rgba(224,17,95,0.06), rgba(228,208,10,0.06));
+      border-radius: 14px;
+      padding: 16px;
+      text-align: center;
+      border: 1px solid rgba(224,17,95,0.08);
+    }
+    .metric-value { font-size: 1.5rem; font-weight: 900; color: var(--ruby); line-height: 1.1; }
+    .metric-label { font-size: 0.68rem; color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+    .dark .metric { background: linear-gradient(135deg, rgba(224,17,95,0.12), rgba(228,208,10,0.12)); border-color: rgba(224,17,95,0.15); }
+    
+    .section-head { border-left: 4px solid var(--ruby); padding-left: 12px; font-weight: 700; }
+    .risk-option { transition: all 0.15s ease; cursor: pointer; }
+    .risk-option.selected { border-color: var(--ruby); background: var(--ruby-bg); box-shadow: 0 0 0 2px var(--ruby); }
+    .dark .risk-option.selected { background: rgba(224,17,95,0.15); border-color: var(--ruby-light); }
+    
+    .pro-locked { position: relative; }
+    .pro-lock-overlay { position: absolute; inset: 0; z-index: 20; background: rgba(255,255,255,0.4); backdrop-filter: blur(4px); border-radius: 16px; }
+    .dark .pro-lock-overlay { background: rgba(15,12,10,0.5); }
+    .pro-lock-overlay .pro-lock-box { position: absolute; top: 12px; left: 12px; right: 12px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 12px; padding: 12px 16px; background: linear-gradient(135deg, var(--ruby), var(--citrine)); border-radius: 14px; box-shadow: 0 8px 24px rgba(224,17,95,0.3); }
+    
+    .info-tooltip { position: relative; cursor: help; font-size: 8px; color: #94a3b8; }
+    .info-tooltip:hover::after { content: attr(data-tooltip); position: absolute; bottom: 135%; left: 50%; transform: translateX(-50%); width: max-content; max-width: 280px; background: var(--obsidian); color: white; padding: 8px 10px; border-radius: 8px; font-size: 9.5px; line-height: 1.45; white-space: normal; z-index: 100; box-shadow: 0 12px 32px rgba(0,0,0,0.2); }
+    .info-tooltip:hover::before { content: ''; position: absolute; bottom: 126%; left: 50%; transform: translateX(-50%); border: 5px solid transparent; border-top-color: var(--obsidian); z-index: 100; }
+    
+    .alloc-bar { display: flex; height: 20px; border-radius: 8px; overflow: hidden; }
+    .alloc-seg { display: flex; align-items: center; justify-content: center; font-size: 8.5px; font-weight: 700; color: white; }
+    
+    .pulse { animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.5; } }
+    .pop-in { animation: popIn .4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+    @keyframes popIn { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+    
+    .range-bar { height: 7px; border-radius: 4px; background: linear-gradient(90deg, var(--ruby), var(--citrine), var(--peridot)); }
+    .range-marker { position: absolute; top: -4px; width: 2px; height: 15px; background: var(--obsidian); border-radius: 1px; }
+    
+    /* Tables */
+    table { width: 100%; border-collapse: collapse; }
+    th { text-align: left; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; padding: 10px 8px; border-bottom: 2px solid; color: #64748b; }
+    td { padding: 10px 8px; font-size: 0.72rem; border-bottom: 1px solid var(--mist); }
+    .dark th { color: #94a3b8; border-bottom-color: #334155; }
+    .dark td { border-bottom-color: #1e293b; }
+    
+    /* Inputs */
+    input, select, textarea {
+      border: 1px solid var(--mist);
+      background: white;
+      color: var(--obsidian);
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 0.8rem;
+      transition: all 0.18s ease;
+    }
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--ruby);
+      box-shadow: 0 0 0 3px var(--ruby-bg);
+    }
+    .dark input, .dark select, .dark textarea { background: #1a1612; border-color: #334155; color: var(--pearl); }
+    .dark input:focus, .dark select:focus, .dark textarea:focus { box-shadow: 0 0 0 3px rgba(224,17,95,0.2); }
+    
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--ruby), var(--citrine)); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb:hover { background: linear-gradient(180deg, var(--ruby-light), var(--citrine-glow)); }
+    
+    /* Hidden utility */
+    .hidden { display: none !important; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    
+    /* Modal */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); backdrop-filter: blur(8px); z-index: 200; display: flex; align-items: center; justify-content: center; padding: 20px; }
+    .modal { background: white; border-radius: 20px; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 80px rgba(0,0,0,0.2); animation: popIn .35s ease; }
+    .dark .modal { background: #1a1612; }
+    .modal-header { padding: 20px 24px; border-bottom: 1px solid var(--mist); display: flex; align-items: center; justify-content: space-between; sticky: top: 0; background: white; border-radius: 20px 20px 0 0; z-index: 10; }
+    .dark .modal-header { border-bottom-color: #334155; background: #1a1612; }
+    .modal-title { font-size: 1.1rem; font-weight: 800; color: var(--obsidian); }
+    .modal-close { width: 36px; height: 36px; border-radius: 10px; border: none; background: var(--mist); color: #64748b; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: all 0.18s; }
+    .modal-close:hover { background: var(--ruby-bg); color: var(--ruby); }
+    .dark .modal-close { background: #334155; color: #94a3b8; }
+    .dark .modal-close:hover { background: rgba(224,17,95,0.15); color: var(--ruby-light); }
+    .modal-body { padding: 24px; }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen bg-grid pb-24 top-safe">
-  <button onclick="toggleDarkMode()" id="darkToggle" title="Toggle dark mode" class="fixed top-3 right-3 z-50 w-10 h-10 rounded-full bg-white/80 backdrop-blur border border-gray-200 shadow text-lg flex items-center justify-center hover:scale-110 transition">🌙</button>
-  <div class="side-girl" title="🙏 So grateful for this journey — manifesting wealth, health & clarity ✨"><img src="assets/me.png" alt="Ruch"></div>
-  <div class="max-w-6xl mx-auto px-4 py-6">
-    <!-- Header -->
-    <header class="mb-6 text-center">
-      <div class="flex items-center justify-center gap-4">
-        <div class="avatar-badge" title="🙏 Grateful & manifesting abundance"><img src="assets/me.png" alt="Ruch"></div>
-        <div class="text-left">
-          <h1 class="text-2xl md:text-3xl font-bold text-gray-900 mb-1">Pre-Market Analyzer<span class="text-sm align-top text-indigo-500 font-semibold ml-1">™</span></h1>
-          <p class="text-gray-600 text-sm">Pre-market cues → position actions, plus an 11-step framework: risk → allocation → goals → review, war/metals context, horizon picks, mutual funds, fees, capital sizing, intraday exits & full portfolio tracking</p>
-        </div>
-      </div>
-      <div class="mt-4 py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-50 via-purple-50 to-pink-50 border border-purple-100">
-        <div class="text-[11px] font-semibold tracking-[0.2em] text-purple-500 uppercase">✨ Grateful · Blessed · Manifesting ✨</div>
-        <div class="mt-2 text-sm text-gray-500">Designed &amp; built with 💜 by</div>
-        <div class="text-5xl md:text-6xl font-black tracking-tight bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">RUCH<span class="text-xl align-top text-indigo-400 font-bold">™</span></div>
-        <div class="mt-2 text-xs text-gray-500 italic">🌙 Abundance is my birthright — every number on this screen grows my wealth &nbsp;✦&nbsp; 💛 Grateful for today, excited for tomorrow</div>
-      </div>
-      <div class="mt-3 flex items-center justify-center gap-3 text-xs text-gray-500 flex-wrap">
-        <span id="lastUpdate" class="font-mono">Not fetched</span>
-        <button onclick="fetchAllData()" id="refreshBtn" class="px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition disabled:opacity-50 text-sm">Refresh</button>
-        <span id="dataSourceBadge"></span>
-        <button onclick="toggleAllSteps()" id="stepAllToggle" class="px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm">🗂 Minimize Steps</button>
-        <button onclick="toggleDataSettings()" class="px-3 py-1.5 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm">⚙️ Data</button>
-        <button onclick="openProModal()" id="proBtn" class="px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg hover:opacity-90 transition text-sm font-semibold shadow">⭐ Go Pro</button>
-      </div>
-      <div id="dataSettingsPanel" class="hidden mt-3 text-left max-w-xl mx-auto p-4 bg-white rounded-xl border border-gray-200 shadow-lg">
-        <div class="flex items-center justify-between mb-2">
-          <h3 class="font-semibold text-gray-800 text-sm">⚙️ Live Data Settings</h3>
-          <button onclick="toggleDataSettings()" class="text-gray-400 hover:text-gray-600 text-sm">✕</button>
-        </div>
-        <p class="text-[11px] text-gray-600 mb-3">
-          <strong>No key needed anymore</strong> — the app now pulls real quotes via the free Yahoo reader (best effort, cached 90s).
-          For the most reliable free live data, add a <strong>TwelveData</strong> key (free, 800 requests/day): sign up at
-          <a href="https://twelvedata.com" target="_blank" rel="noopener" class="text-blue-600 underline">twelvedata.com</a>,
-          copy the API key and paste it below. It's stored only in this browser, never uploaded.
-        </p>
-        <div class="flex flex-wrap gap-2 items-center">
-          <input id="tdKeyInput" type="password" placeholder="Paste free TwelveData API key" class="flex-1 min-w-[220px] px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white" autocomplete="off">
-          <button onclick="saveTDKey()" class="px-3 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">Save</button>
-          <button onclick="clearTDKey()" class="px-3 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 text-sm">Remove key</button>
-        </div>
-        <div id="dataModeStatus" class="mt-2 text-[11px] text-gray-500"></div>
-        <p class="mt-2 text-[11px] text-gray-500">🔒 For public hosting, keep the key server-side in a Cloudflare Worker instead — see <code>cloudflare-worker/worker.js</code>.</p>
-      </div>
-    </header>
-
-    <!-- ============ GEOPOLITICS, WAR & METALS (Market Direction Driver) ============ -->
-    <div id="geopoliticsSection" class="mb-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">🌍 Geopolitics, War & Metals — Market Direction Driver</h3>
-        <span class="pill bg-red-100 text-red-700">Live Impact on Tomorrow's Open</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Wars disrupt supply and push capital to safety. <strong>Gold spikes</strong> (safe haven), <strong>oil spikes</strong> (supply shock → inflation), <strong>silver</strong> follows gold plus industrial demand. <strong>High geopolitical risk + rising oil = Market DOWN bias</strong>. Low risk + falling oil = Market UP bias. Auto-calculated from live VIX, global cues, breadth, gold & oil.</p>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div class="p-3 bg-gray-50 rounded-lg text-xs">
-          <label class="font-medium text-gray-700 block mb-1">Geopolitical risk level <span class="info-tooltip" data-tooltip="Auto-calculated from VIX, global futures, SGX, breadth, gold & oil. Higher = more fear, risk-off for equities.">ℹ️</span></label>
-          <label class="flex items-center gap-1.5 mb-1 cursor-pointer">
-            <input type="checkbox" id="geoAuto" checked onchange="toggleGeoAuto()" class="w-3.5 h-3.5 accent-indigo-600">
-            <span class="text-[10px] text-gray-500">🔗 Auto from live market data</span>
-          </label>
-          <input type="range" id="geoRisk" min="1" max="5" value="2" class="w-full" oninput="updateGeoOutlook(); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
-          <div class="mt-1 font-semibold" id="geoRiskLabel">Calm / Peaceful</div>
-          <div class="mt-0.5 text-[10px] text-gray-400" id="geoRiskNote">Auto: gathering data…</div>
-        </div>
-        <div class="p-3 bg-gray-50 rounded-lg text-xs">
-          <label class="font-medium text-gray-700 block mb-1">Gold price (₹/10g) <span class="info-tooltip" data-source-tip="true">ℹ️</span></label>
-          <input type="number" id="geoGold" value="72500" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" oninput="markGeoManual('gold'); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
-        </div>
-        <div class="p-3 bg-gray-50 rounded-lg text-xs">
-          <label class="font-medium text-gray-700 block mb-1">Crude oil (₹/barrel) <span class="info-tooltip" data-source-tip="true">ℹ️</span></label>
-          <input type="number" id="geoOil" value="7200" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" oninput="markGeoManual('oil'); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
-        </div>
-        <div class="p-3 bg-gray-50 rounded-lg text-xs flex items-end sm:col-span-3">
-          <button onclick="useMarketGeo()" class="w-full sm:w-auto px-3 py-1.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">🔄 Use Today's Market Values</button>
-        </div>
-      </div>
-      <div id="geoOutlook" class="mb-4"></div>
-      <div class="p-3 bg-blue-50 rounded-lg text-xs mb-4" id="geoGoldOil"></div>
-      <div id="geoGoldGuide" class="hidden"></div>
-    </div>
-
-    <!-- ============ GLOBAL-TO-LOCAL MARKET ANALYSIS (AI Expert) ============ -->
-    <div id="globalLocalAnalysis" class="mb-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">🤖 Global → Local Market Analysis (AI Expert)</h3>
-        <span class="pill bg-purple-100 text-purple-700">NSE/BSE Sectoral Impact</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Maps live global catalysts (US tech, commodities, Fed yields, geopolitics) to Indian sectoral indices using institutional correlation logic. Refreshes with live data.</p>
-      <div class="flex flex-wrap gap-2 mb-3">
-        <button onclick="runGlobalLocalAnalysis()" id="glaBtn" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium">🔄 Analyze Now</button>
-        <span id="glaStatus" class="text-xs text-gray-500 self-center"></span>
-      </div>
-      <div id="glaResult" class="hidden"></div>
-    </div>
-
-    <!-- Tomorrow Market Direction -->
-    <div id="tomorrowPrediction" class="mb-6 hidden">
-      <div class="rounded-2xl p-5 shadow-lg text-white" id="tpBox">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-          <div class="min-w-0">
-            <div class="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider opacity-85">🔮 Tomorrow's Market Direction
-              <span class="info-tooltip" data-tooltip="Probabilistic estimate combining 8 cues: pre-market (SGX, global futures, VIX, breadth) + geopolitics, oil price, gold price. High geo risk + high oil = DOWN bias. Not financial advice.">ℹ️</span>
-            </div>
-            <div class="text-2xl md:text-3xl font-black mt-1" id="tpHeading">Predicting...</div>
-          </div>
-          <div class="text-center px-4 py-2 rounded-xl bg-white/15">
-            <div class="text-3xl md:text-4xl font-black" id="tpConfidence">--</div>
-            <div class="text-[11px] uppercase tracking-wider opacity-85 mt-0.5">Confidence</div>
-          </div>
-        </div>
-        <div class="mt-3 text-sm opacity-95" id="tpReason">Gathering cues...</div>
-        <div class="mt-3 flex flex-wrap gap-1.5" id="tpChips"></div>
+<body class="top-safe">
+  <!-- Top Bar -->
+  <div class="top-bar" role="navigation" aria-label="Main navigation">
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div class="brand-badge"><img src="assets/me.png" alt="Ruch" style="width:26px;height:26px;border-radius:8px;"></div>
+      <div class="brand-text">
+        <h1>Pre-Market Analyzer<span>™</span></h1>
+        <p>Your Daily Wealth Compass</p>
       </div>
     </div>
-
-    <!-- Recommendation Banner -->
-    <div id="recommendationBanner" class="mb-6 hidden">
-      <div class="rounded-xl p-5 text-center shadow-lg">
-        <div class="text-xl font-bold mb-1" id="recAction"></div>
-        <div class="text-base opacity-90" id="recReason"></div>
-        <div class="mt-3 text-xs opacity-75" id="recConfidence"></div>
-      </div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span id="lastUpdate" class="font-mono text-xs text-gray-500 hidden sm:inline-block px-2 py-1 bg-gray-100 rounded dark:bg-gray-800">Not fetched</span>
+      <button onclick="fetchAllData()" id="refreshBtn" class="top-btn ruby">↻ Refresh</button>
+      <button onclick="openProModal()" id="proBtn" class="top-btn citrine">⭐ Pro</button>
+      <button onclick="toggleDarkMode()" id="darkToggle" class="top-btn ghost" aria-label="Toggle dark mode">🌙</button>
     </div>
-
-    <!-- Indicators Grid -->
-    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-      <!-- SGX Nifty -->
-      <div class="indicator-card bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-900 text-sm flex items-center gap-1">SGX Nifty (Singapore)
-            <span class="info-tooltip" data-tooltip="SGX Nifty trades in Singapore before Indian market opens. It predicts where Nifty 50 will open. Green = likely gap up, Red = likely gap down.">ℹ️</span>
-          </h3>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Exact Open</span>
-        </div>
-        <div class="space-y-2">
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Current</span><span class="font-mono font-semibold" id="sgxCurrent">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Change</span><span class="font-mono font-semibold" id="sgxChange">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Signal</span><span class="font-semibold px-2.5 py-0.5 rounded-full text-xs" id="sgxSignal">Waiting...</span></div>
-        </div>
-      </div>
-
-      <!-- NASDAQ -->
-      <div class="indicator-card bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-900 text-sm flex items-center gap-1">NASDAQ Futures
-            <span class="info-tooltip" data-tooltip="NASDAQ 100 futures trade overnight in US. Since many Indian IT stocks correlate with US tech, this gives a global cue. Green = positive for IT sector, Red = negative.">ℹ️</span>
-          </h3>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Global Cue</span>
-        </div>
-        <div class="space-y-2">
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Current</span><span class="font-mono font-semibold" id="nasdaqCurrent">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Change</span><span class="font-mono font-semibold" id="nasdaqChange">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Signal</span><span class="font-semibold px-2.5 py-0.5 rounded-full text-xs" id="nasdaqSignal">Waiting...</span></div>
-        </div>
-      </div>
-
-      <!-- DOW JONES -->
-      <div class="indicator-card bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-900 text-sm flex items-center gap-1">Dow Jones Futures
-            <span class="info-tooltip" data-tooltip="Dow Jones Industrial Average futures reflect US blue-chip stocks. Indian banking/auto/metals often follow US market sentiment. Green = risk-on sentiment, Red = risk-off.">ℹ️</span>
-          </h3>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Global Cue</span>
-        </div>
-        <div class="space-y-2">
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Current</span><span class="font-mono font-semibold" id="dowCurrent">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Change</span><span class="font-mono font-semibold" id="dowChange">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Signal</span><span class="font-semibold px-2.5 py-0.5 rounded-full text-xs" id="dowSignal">Waiting...</span></div>
-        </div>
-      </div>
-
-      <!-- India VIX -->
-      <div class="indicator-card bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-900 text-sm flex items-center gap-1">India VIX
-            <span class="info-tooltip" data-tooltip="India VIX measures expected market volatility (fear index). Below 15 = calm/stable market, good for buying. Above 15 = volatile/uncertain, risky to enter new positions. Above 25 = panic.">ℹ️</span>
-          </h3>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Volatility</span>
-        </div>
-        <div class="space-y-2">
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Current</span><span class="font-mono font-semibold" id="vixCurrent">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Level</span><span class="font-mono font-semibold" id="vixLevel">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Signal</span><span class="font-semibold px-2.5 py-0.5 rounded-full text-xs" id="vixSignal">Waiting...</span></div>
-        </div>
-      </div>
-
-      <!-- NSE Adv/Dec -->
-      <div class="indicator-card bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-900 text-sm flex items-center gap-1">NSE Advances/Declines
-            <span class="info-tooltip" data-tooltip="Shows how many NSE stocks went up vs down in pre-market. More advances = broad-based buying (healthy). More declines = broad selling (weak). It measures market breadth - participation across sectors.">ℹ️</span>
-          </h3>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Breadth</span>
-        </div>
-        <div class="space-y-2">
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Advances</span><span class="font-mono font-semibold text-green-600" id="nseAdvances">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Declines</span><span class="font-mono font-semibold text-red-600" id="nseDeclines">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Signal</span><span class="font-semibold px-2.5 py-0.5 rounded-full text-xs" id="nseSignal">Waiting...</span></div>
-        </div>
-      </div>
-
-      <!-- Commodities -->
-      <div class="indicator-card bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-3">
-          <h3 class="font-semibold text-gray-900 text-sm flex items-center gap-1">Commodities (9:00 AM)
-            <span class="info-tooltip" data-tooltip="Gold, Silver, Crude Oil prices at 9 AM IST. Gold up = safe haven demand (caution). Oil up = inflation risk (bad for banks/autos). Oil down = good for India (net importer). Silver follows gold/industrial demand.">ℹ️</span>
-          </h3>
-          <span class="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-600">Early Session</span>
-        </div>
-        <div class="space-y-2">
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Gold</span><span class="font-mono font-semibold" id="commodityGold">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Silver</span><span class="font-mono font-semibold" id="commoditySilver">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Crude Oil</span><span class="font-mono font-semibold" id="commodityOil">--</span></div>
-          <div class="flex justify-between"><span class="text-gray-600 text-sm">Signal</span><span class="font-semibold px-2.5 py-0.5 rounded-full text-xs" id="commoditySignal">Waiting...</span></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============ STEP 1: RISK PROFILE ASSESSMENT ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 1 · Know Your Risk Profile</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 1 of 4</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Your risk tolerance decides your asset allocation. Answer 6 questions - the right mix of <strong>Growth, Income, Liquidity & Capital Safety</strong> depends on who you are.</p>
-      <div id="riskQuestions" class="space-y-4"></div>
-      <div class="flex flex-wrap gap-3 mt-4">
-        <button onclick="calculateRiskProfile()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">Get My Risk Profile & Asset Allocation</button>
-        <button onclick="resetRiskProfile()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm">Reset</button>
-      </div>
-    </div>
-
-    <!-- ============ STEP 9: CAPITAL-BASED ADVISOR (moved after Step 1) ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 9 · Capital-Based Portfolio Builder</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 9 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Tell us how much you can invest <strong>this month</strong> and we'll size the whole plan: how much goes to equity/debt/gold/cash (from your Step 1 profile), which stocks with <strong>exact affordable quantities</strong>, and which SIPs to start.</p>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <div><label class="text-xs font-medium text-gray-600">Monthly investable amount (₹)</label><input type="number" id="capAmount" value="10000" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="500"></div>
-        <div><label class="text-xs font-medium text-gray-600">Horizon</label>
-          <select id="capHorizon" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1">
-            <option value="short">Short term (1-3 mo)</option>
-            <option value="mid">Mid term (3-6 mo)</option>
-            <option value="long" selected>Long term (6 mo-1 yr+)</option>
-          </select>
-        </div>
-        <div><label class="text-xs font-medium text-gray-600">Risk profile</label>
-          <select id="capProfile" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1">
-            <option value="auto" selected>Auto (from Step 1)</option>
-            <option value="conservative">Conservative</option>
-            <option value="moderate">Moderate</option>
-            <option value="aggressive">Aggressive</option>
-          </select>
-        </div>
-      </div>
-      <button onclick="buildCapitalPlan()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Build My Monthly Plan</button>
-      <div id="capResult" class="mt-4"></div>
-    </div>
-
-    <!-- ============ STEP 2: ASSET ALLOCATION ============ -->
-    <div id="allocationSection" class="mt-6 hidden">
-      <div class="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-        <div class="flex items-center justify-between mb-1">
-          <h3 class="section-head font-semibold text-gray-900 text-base">Step 2 · Your Asset Allocation</h3>
-          <span class="pill bg-indigo-100 text-indigo-700">Step 2 of 4</span>
-        </div>
-        <p class="text-xs text-gray-500 mb-4">Asset allocation = dividing money across asset classes so a fall in one is cushioned by a rise in another. This is diversification.</p>
-        <div id="allocationResult"></div>
-      </div>
-    </div>
-
-    <!-- ============ MOMENTUM SCREENER ============ -->
-    <div class="mb-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
-        <h3 class="section-head font-semibold text-gray-900 text-base">🔥 Momentum Screener · Overbought & Bullish Stocks</h3>
-        <span class="pill bg-pink-100 text-pink-700">Live RSI · MACD · Beta</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-3">Finds strong stocks — good financials + positive news, with momentum <strong>building over the past 1 week</strong>. Scans fundamental picks + top movers, computes RSI, MACD &amp; Beta from real daily prices, sorts best momentum first, and flags <strong>overall-bullish stocks that are red today</strong> (buy-the-dip entries). The <strong>Net @ +10%</strong> column is your real profit after <strong>all fees</strong> (brokerage, STT, exchange, SEBI, stamp, DP, GST 18%). <em>Plain-English explanations below the table.</em></p>
-      <div class="flex flex-wrap items-center gap-2 mb-3 p-3 bg-gray-50 rounded-lg text-xs">
-        <label class="font-medium text-gray-700">I plan to invest:</label>
-        <input type="number" id="momInvest" value="40000" min="500" step="500" oninput="renderMomentum()" class="w-28 px-2 py-1 border border-gray-300 rounded text-sm">
-        <span class="text-gray-500">₹</span>
-        <label class="ml-2 font-medium text-gray-700">Broker:</label>
-        <select id="momBroker" onchange="renderMomentum()" class="px-2 py-1 border border-gray-300 rounded text-sm bg-white">
-          <option value="groww" selected>Groww</option>
-          <option value="zerodha">Zerodha</option>
-          <option value="dhan">Dhan</option>
-          <option value="upstox">Upstox</option>
-          <option value="angel">Angel One</option>
-          <option value="icici">ICICI Direct</option>
-          <option value="hdfc">HDFC Securities</option>
-        </select>
-        <span class="text-gray-400">Net P&amp;L accounts for brokerage, STT, exchange txn, SEBI, stamp, DP &amp; GST.</span>
-      </div>
-      <div class="flex flex-wrap items-center gap-2 mb-3">
-        <button onclick="scanMomentum()" id="momScanBtn" class="px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition text-sm font-medium">🚀 Scan Now</button>
-        <span id="momStatus" class="text-xs text-gray-500"></span>
-        <span class="info-tooltip" data-source-tip="true">ℹ️</span>
-      </div>
-      <div class="flex flex-wrap gap-2 mb-3" id="momFilters">
-        <button class="px-2.5 py-1 rounded-full text-xs font-medium bg-pink-600 text-white" data-mf="all" onclick="filterMomentum('all', this)">All</button>
-        <button class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-mf="overbought" onclick="filterMomentum('overbought', this)">Overbought 🔥</button>
-        <button class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-mf="verybull" onclick="filterMomentum('verybull', this)">Very Bullish 🚀</button>
-        <button class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200" data-mf="bull" onclick="filterMomentum('bull', this)">Bullish ✅</button>
-      </div>
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3" id="momAdvice"></div>
-      <div id="momResult"></div>
-      <div class="mt-4 grid grid-cols-1 md:grid-cols-4 gap-2 text-[11px]">
-        <div class="p-3 bg-indigo-50 rounded-lg">
-          <strong class="text-indigo-800">RSI (14) — "heat meter" (0–100)</strong>
-          <div class="text-indigo-700 mt-0.5">How hard the stock has been bought recently. <strong>Above 70 = overbought</strong> (bought up fast), below 30 = oversold. In strong stocks RSI can stay high for weeks — hot stays hot, so it's momentum, not panic.</div>
-        </div>
-        <div class="p-3 bg-blue-50 rounded-lg">
-          <strong class="text-blue-900">MACD — "who's in charge?"</strong>
-          <div class="text-blue-800 mt-0.5">Two moving averages. When the faster line (MACD) sits <strong>above</strong> the slower signal line, buyers are in control (bullish). <strong>Green bars growing = momentum building.</strong></div>
-        </div>
-        <div class="p-3 bg-green-50 rounded-lg">
-          <strong class="text-green-900">Beta — "thrill factor"</strong>
-          <div class="text-green-800 mt-0.5">How much the stock moves when the market moves 1%. <strong>Beta 1.5</strong> = 1.5× as jumpy as Nifty (bigger ups, bigger downs). <strong>Beta 0.8</strong> = calmer than the market.</div>
-        </div>
-        <div class="p-3 bg-yellow-50 rounded-lg">
-          <strong class="text-yellow-900">1W / Trend — "this week's mood"</strong>
-          <div class="text-yellow-800 mt-0.5"><strong>1W</strong> = change over the last 5 trading days. <strong>Overbought is NOT a sell signal alone</strong> — pair it with strong financials + good news and ride with stop-losses from Step 8/10.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- ============ PERSONAL WATCHLIST (private overbought alerts) ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1 flex-wrap gap-2">
-        <h3 class="section-head font-semibold text-gray-900 text-base">🔔 Personal Watchlist · Overbought Alerts</h3>
-        <div class="flex items-center gap-2">
-          <span class="pill bg-indigo-100 text-indigo-700">Saved in your browser</span>
-          <button onclick="toggleWatchAlerts()" id="watchAlertBtn" class="px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 hover:bg-gray-200">🔕 Alerts OFF</button>
-        </div>
-      </div>
-      <p class="text-xs text-gray-500 mb-3">Private list of symbols you're following — never shown as public recommendations. The app checks their live RSI and flags <strong>Overbought (RSI ≥ 70)</strong>: heavy buying means strong momentum, and in strong stocks price can keep rising — hot stays hot. Everything stays in your browser.</p>
-      <div class="flex flex-wrap items-center gap-2 mb-3">
-        <input type="text" id="watchSymbol" placeholder="Add symbol e.g. CUPID, RELIANCE" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm uppercase">
-        <button onclick="addWatchSymbol()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition text-sm font-medium">+ Watch</button>
-        <button onclick="refreshPersonalWatch(true)" class="px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium">Check RSI now</button>
-        <span id="watchStatus" class="text-xs text-gray-500"></span>
-      </div>
-      <div id="watchResult" class="text-xs"></div>
-    </div>
-
-    <!-- ============ STEP 3: PORTFOLIO POSITION ANALYSIS (Live) ============ -->
-    <div id="step3" class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 3 · Check A Stock Position (Live)</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 3 of 4</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Enter the stock you hold and what you paid. We fetch the live price automatically and recommend <strong>Buy / Hold / Sell / Book Profit</strong>. <span class="info-tooltip" data-source-tip="true">ℹ️</span></p>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <input type="text" id="portfolioSymbol" placeholder="Symbol (e.g., RELIANCE, TCS, HDFCBANK)" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm uppercase">
-        <input type="number" id="portfolioQty" placeholder="Qty Held" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" min="1">
-        <input type="number" id="portfolioAvgPrice" placeholder="Your Avg Buy Price (₹)" class="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" step="0.01" min="0">
-      </div>
-      <div class="mb-4">
-        <label class="text-xs text-gray-500">Optional: Your total portfolio value (₹) — enables position-size & concentration check vs your risk profile</label>
-        <input type="number" id="portfolioValue" placeholder="e.g. 1000000" class="mt-1 w-full sm:w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm" min="0">
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <button onclick="analyzePortfolio()" id="analyzeBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Fetch Live Price & Recommend</button>
-        <button onclick="showStockSuggestions()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">Get Stock Ideas</button>
-      </div>
-      <div id="portfolioResult" class="hidden"></div>
-    </div>
-
-    <!-- ============ STEP 4: GOAL PLANNING & REVIEW ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 4 · Goal Planning & Periodic Review</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 4 of 4</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Each goal needs the right asset mix. <strong>Growth</strong> for long-term, <strong>income</strong> for recurring needs, <strong>liquidity</strong> for immediate needs, <strong>safety</strong> for capital preservation. No single investment does all - so we match each goal to suitable investments.</p>
-
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
-        <div>
-          <label class="text-xs font-medium text-gray-600">Goal Type</label>
-          <select id="goalType" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm mt-1">
-            <option value="home">🏠 Home Down Payment (₹25L-1Cr)</option>
-            <option value="education">🎓 Child Education (₹15L-50L)</option>
-            <option value="business">💼 Business Capital (₹10L-50L)</option>
-            <option value="retirement">🏖️ Early Retirement Corpus (₹1Cr+)</option>
-            <option value="vehicle">🚗 Vehicle Upgrade (₹10L-30L)</option>
-            <option value="income">💵 Regular Income Generation</option>
-            <option value="emergency">🛟 Emergency Fund (6 months expenses)</option>
-            <option value="custom">✏️ Custom Goal</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs font-medium text-gray-600">Target Amount (₹)</label>
-          <input type="number" id="goalAmount" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm mt-1" step="10000" min="100000" value="5000000">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-gray-600">Years to Goal</label>
-          <input type="number" id="goalYears" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm mt-1" min="1" max="30" value="7">
-        </div>
-        <div>
-          <label class="text-xs font-medium text-gray-600">Expected Annual Return (%)</label>
-          <input type="number" id="expectedReturn" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-sm mt-1" step="0.5" min="4" max="20" value="12">
-        </div>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <button onclick="calculateGoalPlan()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Calculate Goal Plan</button>
-        <button onclick="showRebalanceAdvice()" class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-sm font-medium">Periodic Review & Rebalance</button>
-        <button onclick="showConcentrationCheck()" class="px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600 transition text-sm font-medium">Concentration Risk Check</button>
-      </div>
-      <div id="goalResult" class="hidden"></div>
-    </div>
-
-    <!-- ============ STEP 6: TOP PERFORMERS BY HORIZON ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 6 · Top Performers by Horizon</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 6 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Screened from the watchlist + fundamental picks using momentum, trend strength and today's market context (SGX/VIX/breadth). <strong>Short term = momentum + liquidity, Long term = quality + trend.</strong></p>
-      <div class="flex gap-2 mb-4 text-sm flex-wrap">
-        <button onclick="renderTopPicks('short')" id="tabShort" class="px-4 py-2 rounded-lg font-medium border border-gray-200 bg-white">🔥 Short (1-3 mo)</button>
-        <button onclick="renderTopPicks('mid')" id="tabMid" class="px-4 py-2 rounded-lg font-medium border border-gray-200 bg-white">⚡ Mid (3-6 mo)</button>
-        <button onclick="renderTopPicks('long')" id="tabLong" class="px-4 py-2 rounded-lg font-medium border border-gray-200 bg-white">🏆 Long (6 mo-1 yr)</button>
-      </div>
-      <div id="topPicks"></div>
-      <div class="mt-3 p-2 bg-gray-50 rounded text-[11px] text-gray-500">Scores are model-based on current market inputs (live quotes via the free Yahoo reader, or mock if offline). Always set a stop-loss — a pick can fail regardless of score.</div>
-    </div>
-
-    <!-- ============ STEP 7: MUTUAL FUNDS (GROWW) ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 7 · Mutual Funds to Buy on Groww</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 7 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-3">Direct plans on Groww carry <strong>no commission</strong>. You only pay: the fund's expense ratio (already inside the NAV), stamp duty 0.005% on buy, STT 0.001% on redemption of equity funds, and an <strong>exit load if you redeem too early</strong> (most equity funds: 1% within 1 year; debt funds: 0.25-0.5% within ~6 months). So: hold equity funds ≥ 1 year per installment.</p>
-      <div class="overflow-x-auto mb-4">
-        <table class="w-full text-xs">
-          <thead><tr class="text-left text-gray-500 border-b">
-            <th class="py-2 pr-2">Fund</th><th class="py-2 pr-2">Category</th><th class="py-2 pr-2">Expense</th><th class="py-2 pr-2">Exit load</th><th class="py-2 pr-2">Min SIP</th><th class="py-2">Bucket</th>
-          </tr></thead>
-          <tbody id="mfTableBody"></tbody>
-        </table>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div class="p-3 bg-gray-50 rounded-lg text-xs">
-          <label class="font-medium text-gray-700 block mb-1">MF purchase amount (₹)</label>
-          <input type="number" id="mfAmount" value="10000" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" oninput="renderMFFees()">
-          <label class="font-medium text-gray-700 block mt-2 mb-1">Fund type</label>
-          <select id="mfType" class="w-full px-2 py-1 border border-gray-300 rounded text-sm" onchange="renderMFFees()">
-            <option value="equity">Equity fund (growth)</option>
-            <option value="debt">Debt / Liquid fund</option>
-          </select>
-          <div id="mfFees" class="mt-2"></div>
-        </div>
-        <div class="p-3 bg-gray-50 rounded-lg text-xs">
-          <h4 class="font-medium text-gray-700 mb-1">Why direct MFs on Groww?</h4>
-          <ul class="list-disc list-inside space-y-0.5 text-gray-600">
-            <li>Direct plan = lower expense ratio than regular (0.2-0.5% saved every year)</li>
-            <li>No brokerage on SIP or lumpsum, no hidden loads (except exit load if early)</li>
-            <li>Set & forget SIPs — auto-debit from bank, buy fraction of units</li>
-            <li>STT & stamp duty are fractions of a percent</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="mt-4 p-4 bg-indigo-50 rounded-xl border border-indigo-200">
-        <h4 class="font-semibold text-indigo-900 text-sm mb-1">💰 How much should YOU invest?</h4>
-        <p class="text-[11px] text-indigo-700 mb-3">Have money now, or invest monthly from salary? Pick a mode — we split it across the funds above using your <strong>Step 1 risk profile</strong> (defaults to Moderate if you haven't done Step 1). All funds are searchable on Groww — direct plans, no commission.</p>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
-          <div>
-            <label class="block text-[11px] text-indigo-900 font-medium mb-1">I want to plan by</label>
-            <select id="mfPlanMode" class="w-full px-2 py-1.5 border border-indigo-200 rounded text-sm bg-white" onchange="renderMFPlan()">
-              <option value="salary" selected>📅 Monthly salary (SIP)</option>
-              <option value="lumpsum">💵 Lump sum now</option>
-            </select>
-          </div>
-          <div>
-            <div id="mfLumpBox" class="hidden">
-              <label class="block text-[11px] text-indigo-900 font-medium mb-1">Money available now (₹)</label>
-              <input type="number" id="mfLump" value="40000" min="0" class="w-full px-2 py-1.5 border border-indigo-200 rounded text-sm bg-white" oninput="renderMFPlan()">
-              <div class="text-[10px] text-indigo-700 mt-1">💡 e.g. ₹40,000 one-time</div>
-            </div>
-            <div id="mfSalaryBox">
-              <label class="block text-[11px] text-indigo-900 font-medium mb-1">Monthly salary &amp; currency</label>
-              <div class="flex gap-2">
-                <input type="number" id="mfSalary" value="2000" min="0" class="w-full px-2 py-1.5 border border-indigo-200 rounded text-sm bg-white" oninput="renderMFPlan()">
-                <select id="mfSalaryCur" class="px-2 py-1.5 border border-indigo-200 rounded text-sm bg-white" onchange="renderMFPlan()">
-                  <option value="USD" selected>USD</option>
-                  <option value="INR">₹ INR</option>
-                </select>
-              </div>
-              <div class="flex items-center gap-1 mt-1">
-                <span class="text-[10px] text-indigo-700">Forex:</span>
-                <input type="number" id="mfForex" value="95" step="0.01" min="0" class="w-20 px-1 py-0.5 border border-indigo-200 rounded text-xs bg-white" oninput="renderMFPlan()">
-                <span class="text-[10px] text-indigo-700">₹/USD</span>
-                <button onclick="fetchForex()" title="Refresh live rate" class="text-[10px] px-1.5 py-0.5 bg-indigo-600 text-white rounded hover:bg-indigo-700">🔄</button>
-                <span id="mfFxStatus" class="text-[10px] text-indigo-700"></span>
-                <span class="info-tooltip" data-tooltip="Forex rate ₹ per USD — auto-fetched live on load (and via 🔄). Reference: Moneycontrol's currency page (it blocks automated reads, so the live rate is pulled from the same free market feed — no key needed). The salary is converted to ₹ with this rate before the % is applied. Edit to override.">ℹ️</span>
-              </div>
-            </div>
-          </div>
-          <div>
-            <label class="block text-[11px] text-indigo-900 font-medium mb-1">% of salary to invest</label>
-            <select id="mfRulePct" class="w-full px-2 py-1.5 border border-indigo-200 rounded text-sm bg-white" onchange="renderMFPlan()">
-              <option value="10">10% — just starting / low savings</option>
-              <option value="15" selected>15% — balanced (recommended)</option>
-              <option value="20">20% — aggressive saver</option>
-            </select>
-          </div>
-        </div>
-        <div id="mfPlan" class="grid grid-cols-1 lg:grid-cols-2 gap-3"></div>
-      </div>
-    </div>
-
-    <!-- ============ RBI BOND TRANCHES ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">🏦 RBI Bond Tranches · Dates, Pros/Cons & How to Buy</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Reference</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">RBI savings bonds open in short <strong>subscription windows ("tranches")</strong> — only a few days, a few times a year. Compare all options below, then follow the exact steps. Current FRSB coupon: <strong>8.05% p.a.</strong> (NSC 7.70% + 0.35%, valid 1 Jan – 30 Jun 2026).</p>
-
-      <div class="overflow-x-auto mb-4">
-        <table class="w-full text-xs">
-          <thead><tr class="text-left text-gray-500 border-b">
-            <th class="py-2 pr-2">Product</th>
-            <th class="py-2 pr-2">Return</th>
-            <th class="py-2 pr-2">Lock-in</th>
-            <th class="py-2 pr-2">Buy via</th>
-            <th class="py-2 pr-2">Tranche / Status</th>
-            <th class="py-2 pr-2">Pros</th>
-            <th class="py-2">Cons</th>
-          </tr></thead>
-          <tbody>
-            <tr class="border-b align-top">
-              <td class="py-2 pr-2 font-medium text-gray-800">FRSB 2020 (Taxable)</td>
-              <td class="py-2 pr-2 text-gray-600">8.05% p.a. (NSC +0.35%), resets every 1 Jan / 1 Jul</td>
-              <td class="py-2 pr-2 text-gray-600">7 years</td>
-              <td class="py-2 pr-2 text-gray-600">Bank branch, Post Office, RBI Retail Direct</td>
-              <td class="py-2 pr-2 text-gray-600">~5-day windows, 2–3× / year</td>
-              <td class="py-2 pr-2 text-gray-600">Sovereign-safe · no upper limit · typically beats FDs</td>
-              <td class="py-2 text-gray-600">Interest fully taxable at your slab (10% TDS at source) · no exit before 7 yrs (except 60+) · not tradable</td>
-            </tr>
-            <tr class="border-b align-top">
-              <td class="py-2 pr-2 font-medium text-gray-800">Sovereign Gold Bonds (SGB)</td>
-              <td class="py-2 pr-2 text-gray-600">Gold price + 2.5% p.a. interest (half-yearly)</td>
-              <td class="py-2 pr-2 text-gray-600">8 yrs (exit allowed from yr 5)</td>
-              <td class="py-2 pr-2 text-gray-600">Bank, Post Office, broker apps</td>
-              <td class="py-2 pr-2 text-gray-600">Tranche-based; no new series since FY 2023-24</td>
-              <td class="py-2 pr-2 text-gray-600">Capital-gain tax-free at maturity · no purity/storage risk</td>
-              <td class="py-2 text-gray-600">Gold price can fall · interest taxable · 8-yr lock-in</td>
-            </tr>
-            <tr class="align-top">
-              <td class="py-2 pr-2 font-medium text-gray-800">RBI Retail Direct (T-Bills / G-Sec)</td>
-              <td class="py-2 pr-2 text-gray-600">Market yield — set by each weekly auction</td>
-              <td class="py-2 pr-2 text-gray-600">None — sell any time</td>
-              <td class="py-2 pr-2 text-gray-600">rbiretaildirect.org.in</td>
-              <td class="py-2 pr-2 text-gray-600">Weekly auctions — always open</td>
-              <td class="py-2 pr-2 text-gray-600">Liquid · no lock-in · low entry (₹10k) · transparent</td>
-              <td class="py-2 text-gray-600">Bond price falls if rates rise · coupon taxable · retail exit can be thin</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="p-4 bg-gray-50 rounded-xl">
-          <h4 class="font-semibold text-gray-800 text-sm mb-2">📅 FRSB tranche windows (recent, confirmed)</h4>
-          <table class="w-full text-xs">
-            <thead><tr class="text-left text-gray-500 border-b">
-              <th class="py-1.5 pr-2">Tranche</th><th class="py-1.5 pr-2">Window</th><th class="py-1.5">Open</th>
-            </tr></thead>
-            <tbody>
-              <tr class="border-b"><td class="py-1.5 pr-2 text-gray-700">V</td><td class="py-1.5 pr-2 text-gray-700">17–21 Jan 2022</td><td class="py-1.5 text-gray-700">5 working days</td></tr>
-              <tr class="border-b"><td class="py-1.5 pr-2 text-gray-700">VI</td><td class="py-1.5 pr-2 text-gray-700">6–10 Feb 2023</td><td class="py-1.5 text-gray-700">5 working days</td></tr>
-              <tr class="border-b"><td class="py-1.5 pr-2 text-gray-700">VII</td><td class="py-1.5 pr-2 text-gray-700">15–19 May 2023</td><td class="py-1.5 text-gray-700">5 working days</td></tr>
-              <tr class="border-b"><td class="py-1.5 pr-2 text-gray-700">VIII</td><td class="py-1.5 pr-2 text-gray-700">14–18 Aug 2023</td><td class="py-1.5 text-gray-700">5 working days</td></tr>
-              <tr class="border-b"><td class="py-1.5 pr-2 text-gray-700">IX</td><td class="py-1.5 pr-2 text-gray-700">8–12 Jan 2024</td><td class="py-1.5 text-gray-700">5 working days</td></tr>
-              <tr class="border-b"><td class="py-1.5 pr-2 text-gray-700">X</td><td class="py-1.5 pr-2 text-gray-700">15–19 Apr 2024</td><td class="py-1.5 text-gray-700">5 working days</td></tr>
-              <tr><td class="py-1.5 pr-2 text-gray-700">XI</td><td class="py-1.5 pr-2 text-gray-700">1–5 Jul 2024</td><td class="py-1.5 text-gray-700">5 working days</td></tr>
-            </tbody>
-          </table>
-          <div class="mt-3 p-2.5 bg-red-50 border border-red-200 rounded-lg text-[11px] text-red-900">
-            ⚠️ RBI withdrew the FRSB operational-guidelines circular w.e.f. <strong>02-Apr-2026</strong>. Before assuming any tranche is open, confirm the latest window on <strong>rbi.org.in</strong> (press releases) or ask your bank/Post Office.
-          </div>
-        </div>
-        <div class="p-4 bg-gray-50 rounded-xl">
-          <h4 class="font-semibold text-gray-800 text-sm mb-2">🪜 Exact steps to buy FRSB</h4>
-          <ol class="list-decimal list-inside space-y-1.5 text-xs text-gray-700">
-            <li><strong>Bank / Post Office (offline):</strong> pick up Form B (application) at any authorized branch of SBI, a nationalized bank, or a Post Office that issues FRSB.</li>
-            <li>Fill in your PAN, Aadhaar, address, payout bank account &amp; amount (min ₹1,000, in multiples of ₹1,000). No upper limit.</li>
-            <li>Attach a PAN copy, ID proof &amp; a cancelled cheque; fill the nomination (Form C) too — it's recommended.</li>
-            <li>Pay — cash up to ₹20,000, or a cheque/DD for any amount. Keep the acknowledgement.</li>
-            <li>Bond is credited to your <strong>Bond Ledger Account</strong> on payment realisation; a Certificate of Holding (Form A) follows within ~7 days.</li>
-            <li>Interest auto-credits to your bank on <strong>1 Jan &amp; 1 Jul</strong> (TDS applies); principal returns after 7 years.</li>
-          </ol>
-          <h4 class="font-semibold text-gray-800 text-sm mt-3 mb-1.5">Online (RBI Retail Direct)</h4>
-          <ol class="list-decimal list-inside space-y-1.5 text-xs text-gray-700">
-            <li>Register at <strong>rbiretaildirect.org.in</strong> — PAN + Aadhaar e-KYC + your bank account → a Retail Direct Gilt account is opened.</li>
-            <li>During a tranche window, log in → Retail Direct → subscribe to FRSB (min ₹1,000).</li>
-            <li>Pay via net banking/UPI — bonds are credited immediately.</li>
-          </ol>
-          <div class="mt-3 p-2.5 bg-indigo-50 border border-indigo-200 rounded-lg text-[11px] text-indigo-900">
-            💡 <strong>SGB (if a series reopens):</strong> same route — apply at a bank/Post Office or via a broker app before the tranche closes. You get 2.5% interest + gold-price gains, and capital gains are tax-free if held to maturity.
-          </div>
-        </div>
-      </div>
-
-      <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-xl">
-        <h4 class="font-semibold text-yellow-900 text-sm mb-1">💸 Tax on FRSB interest — how much you actually keep</h4>
-        <p class="text-[11px] text-yellow-900 mb-3">Interest is <strong>fully taxable</strong> as "Income from Other Sources" at your slab rate (applies in both old &amp; new regimes) — <strong>no 80C deduction</strong>. TDS is deducted at source and adjusted against your final liability at filing. Below: what you keep on a <strong>₹1,00,000</strong> bond at 8.05% (interest ≈ ₹8,050/yr, incl. 4% cess).</p>
-        <div class="overflow-x-auto">
-          <table class="w-full text-xs">
-            <thead><tr class="text-left text-gray-500 border-b">
-              <th class="py-1.5 pr-2">Your slab</th>
-              <th class="py-1.5 pr-2">Tax on ₹8,050</th>
-              <th class="py-1.5 pr-2">Net interest kept</th>
-              <th class="py-1.5">Post-tax yield</th>
-            </tr></thead>
-            <tbody>
-              <tr class="border-b"><td class="py-1.5 pr-2 font-medium text-gray-800">Nil / Form 15G-15H</td><td class="py-1.5 pr-2 text-gray-700">₹0 (no TDS)</td><td class="py-1.5 pr-2 text-gray-700">₹8,050</td><td class="py-1.5 text-gray-700">8.05%</td></tr>
-              <tr class="border-b"><td class="py-1.5 pr-2 font-medium text-gray-800">5% slab</td><td class="py-1.5 pr-2 text-gray-700">≈ ₹419 (5.2%)</td><td class="py-1.5 pr-2 text-gray-700">≈ ₹7,631</td><td class="py-1.5 text-gray-700">≈ 7.63%</td></tr>
-              <tr class="border-b"><td class="py-1.5 pr-2 font-medium text-gray-800">10% slab</td><td class="py-1.5 pr-2 text-gray-700">≈ ₹837 (10.4%)</td><td class="py-1.5 pr-2 text-gray-700">≈ ₹7,213</td><td class="py-1.5 text-gray-700">≈ 7.21%</td></tr>
-              <tr class="border-b"><td class="py-1.5 pr-2 font-medium text-gray-800">20% slab</td><td class="py-1.5 pr-2 text-gray-700">≈ ₹1,674 (20.8%)</td><td class="py-1.5 pr-2 text-gray-700">≈ ₹6,376</td><td class="py-1.5 text-gray-700">≈ 6.38%</td></tr>
-              <tr><td class="py-1.5 pr-2 font-medium text-gray-800">30% slab</td><td class="py-1.5 pr-2 text-gray-700">≈ ₹2,512 (31.2%)</td><td class="py-1.5 pr-2 text-gray-700">≈ ₹5,538</td><td class="py-1.5 text-gray-700">≈ 5.54%</td></tr>
-            </tbody>
-          </table>
-        </div>
-        <div class="mt-3 p-2.5 bg-yellow-100 border border-yellow-200 rounded-lg text-[11px] text-yellow-900">
-          🧾 <strong>TDS rules:</strong> banks deduct <strong>10%</strong> TDS (Sec 193) on every interest payout — <strong>20%</strong> if your PAN isn't on record. Submit <strong>Form 15G / 15H</strong> (income below the taxable limit / senior citizen) at the branch to skip TDS entirely. TDS is advance tax only — your true liability is set by your slab at filing. Figures above are illustrative and exclude surcharge (income above ₹50L).
-        </div>
-      </div>
-    </div>
-
-    <!-- ============ STEP 8: FEES & NET-PROFIT CALCULATOR ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 8 · Fees & Net-Profit Calculator</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 8 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Every trade has hidden costs. This shows the <strong>exact fees</strong> (brokerage per order, STT 0.1% buy+sell on delivery / 0.025% sell on intraday, exchange transaction charges 0.00307%, SEBI ₹10/crore, stamp duty, DP on delivery sells, and GST 18% on top) and the <strong>true net profit</strong> — plus the sell price you actually need to be net-positive, and the price needed to hit your target. Pick your broker below and its real brokerage is applied.</p>
-      <div class="flex flex-wrap items-center gap-2 mb-3">
-        <label class="text-xs font-medium text-gray-600">Broker</label>
-        <select id="feeBroker" onchange="onFeeBrokerChange()" class="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white">
-          <option value="zerodha">Zerodha</option>
-          <option value="groww">Groww</option>
-          <option value="dhan">Dhan</option>
-          <option value="upstox">Upstox</option>
-          <option value="angel">Angel One</option>
-          <option value="icici">ICICI Direct</option>
-          <option value="hdfc">HDFC Securities</option>
-          <option value="custom">Custom…</option>
-        </select>
-        <div id="feeCustomRow" class="hidden flex items-center gap-2">
-          <label class="text-xs text-gray-600">Delivery %</label>
-          <input type="number" id="feeDelPct" value="0.55" step="0.01" min="0" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm">
-          <label class="text-xs text-gray-600">Intraday %</label>
-          <input type="number" id="feeIntraPct" value="0.05" step="0.01" min="0" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm">
-        </div>
-        <span class="text-[10px] text-gray-400">Delivery brokerage: Zerodha &amp; Dhan ₹0 · Groww ₹20/order (0.05%, lower) · Upstox flat ₹20 · Angel ₹20/order (0.1%, min ₹5) · ICICI 0.55% · HDFC 0.50%. Intraday ₹20 cap for discount brokers. DP ₹13–20 on delivery sells.</span>
-      </div>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div><label class="text-xs font-medium text-gray-600">Trade type</label>
-          <select id="feeMode" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1">
-            <option value="delivery">Delivery (investing)</option>
-            <option value="intraday">Intraday (same day)</option>
-          </select>
-        </div>
-        <div><label class="text-xs font-medium text-gray-600">Buy price (₹)</label><input type="number" id="feeBuy" value="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="0"></div>
-        <div><label class="text-xs font-medium text-gray-600">Qty</label><input type="number" id="feeQty" value="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="1"></div>
-        <div><label class="text-xs font-medium text-gray-600">Sell price (₹)</label><input type="number" id="feeSell" value="105" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="0"></div>
-      </div>
-      <div class="flex flex-wrap items-center gap-2 mb-4">
-        <button onclick="calcFees()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Calculate Net Profit</button>
-        <button onclick="findFeeTarget()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">Sell Price for Target</button>
-        <label class="text-xs text-gray-600">Target net profit (%)</label>
-        <input type="number" id="feeTargetPct" value="10" class="w-20 px-2 py-1 border border-gray-300 rounded text-sm" min="0" step="0.5">
-      </div>
-      <div id="feeResult"></div>
-    </div>
-
-    <!-- ============ STEP 9: CAPITAL-BASED ADVISOR ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 9 · Capital-Based Portfolio Builder</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 9 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Tell us how much you can invest <strong>this month</strong> and we'll size the whole plan: how much goes to equity/debt/gold/cash (from your Step 1 profile), which stocks with <strong>exact affordable quantities</strong>, and which SIPs to start.</p>
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
-        <!-- ============ STEP 10: INTRADAY LIVE SELL MONITOR ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100 pro-locked">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 10 · Intraday Live Sell Monitor</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 10 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Tracks a live (or simulated) price feed and flags <strong>exactly when to exit</strong>: stop-loss hit, target reached, RSI overbought, momentum breakdown, or square-off before 3:15 PM. All fees are included in the net P&L.</p>
-      <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-        <div><label class="text-xs font-medium text-gray-600">Symbol</label><input type="text" id="intraSymbol" placeholder="RELIANCE" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1 uppercase"></div>
-        <div><label class="text-xs font-medium text-gray-600">Qty</label><input type="number" id="intraQty" value="10" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="1"></div>
-        <div><label class="text-xs font-medium text-gray-600">Entry price (₹)</label><input type="number" id="intraEntry" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="0"></div>
-        <div><label class="text-xs font-medium text-gray-600">Feed</label>
-          <select id="intraMode" class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm mt-1">
-            <option value="simulate" selected>Simulated feed (off-hours)</option>
-            <option value="live">Live price (if API works)</option>
-          </select>
-        </div>
-      </div>
-      <button onclick="startIntradayMonitor()" id="intraStartBtn" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Start Monitor</button>
-      <button onclick="stopIntradayMonitor()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium">Stop</button>
-      <div id="intraResult" class="mt-4"></div>
-      <div class="mt-4 p-3 bg-gray-50 rounded-lg text-xs">
-        <strong>Exit factors that decide a sell:</strong>
-        <ul class="list-disc list-inside ml-3 mt-1 space-y-0.5">
-          <li><strong>Stop-loss hit</strong> — price falls to SL (1.5× ATR). Sell; don't argue with the tape.</li>
-          <li><strong>Target reached</strong> — book profit at target1/target2; greed turns winners into losers.</li>
-          <li><strong>RSI &gt; 75</strong> — overbought; pullback likely.</li>
-          <li><strong>Momentum breakdown</strong> — lower lows on rising volume; exit before SL.</li>
-          <li><strong>Market reversal</strong> — VIX spikes / breadth flips negative; intraday, exit first, ask later.</li>
-          <li><strong>Time stop</strong> — intraday positions must be squared off before 3:15 PM.</li>
-          <li><strong>News</strong> — negative company/sector headline: exit immediately.</li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- ============ STEP 11: MY PORTFOLIO TRACKER ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 11 · My Portfolio Tracker</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 11 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">List every stock & mutual fund you hold with your <strong>average buy price and quantity</strong>. The tracker shows today's value, P&L after fees, and a sell plan: <strong>suggested sell date, quantity to sell now, projected net profit</strong> at each target.</p>
-      <div class="pro-lock-note mb-3 text-[11px] text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-lg px-3 py-2">⭐ Free plan tracks up to 3 holdings — upgrade for unlimited.</div>
-      <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4 p-3 bg-gray-50 rounded-lg">
-        <div><label class="text-xs font-medium text-gray-600">Type</label>
-          <select id="ptType" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm mt-1">
-            <option value="stock">Stock</option>
-            <option value="mf">Mutual Fund</option>
-          </select>
-        </div>
-        <div><label class="text-xs font-medium text-gray-600">Symbol / Fund</label><input type="text" id="ptSymbol" placeholder="RELIANCE" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm mt-1 uppercase"></div>
-        <div><label class="text-xs font-medium text-gray-600">Avg buy price (₹)</label><input type="number" id="ptBuy" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="0" step="0.01"></div>
-        <div><label class="text-xs font-medium text-gray-600">Qty / Units</label><input type="number" id="ptQty" class="w-full px-2 py-2 border border-gray-300 rounded-lg text-sm mt-1" min="0" step="0.001"></div>
-        <div class="flex items-end"><button onclick="addHolding()" class="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium">Add Holding</button></div>
-      </div>
-      <div class="flex flex-wrap gap-2 mb-3">
-        <button onclick="refreshHoldings()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">Refresh Prices & Signals</button>
-        <button onclick="exportHoldingsCsv()" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition text-sm font-medium">Export CSV</button>
-      </div>
-      <div id="portfolioTableWrap" class="overflow-x-auto"></div>
-    </div>
-
-    <!-- ============ STEP 12: REITS & INVITS ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">Step 12 · Real Estate & Infrastructure (REITs & InvITs)</h3>
-        <span class="pill bg-indigo-100 text-indigo-700">Step 12 of 12</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">REITs own income-producing real estate — office parks, malls, warehouses — and must distribute <strong>~90% of cash flows</strong> as quarterly income. InvITs do the same for physical infrastructure like toll roads and power lines. Units trade on NSE like shares (1 unit ≈ ₹65–₹400). Pick a category below; each card shows the ⭐ best choice for that sector.</p>
-      <div class="flex flex-wrap gap-2 mb-3" id="reitCatChips"></div>
-      <div class="flex flex-wrap gap-2 mb-3">
-        <button onclick="refreshReitPrices()" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">Refresh Live Unit Prices</button>
-        <span id="reitPriceStatus" class="text-xs text-gray-500 self-center"></span>
-      </div>
-      <div id="reitCardsWrap" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3"></div>
-      <div class="mt-3 text-[11px] text-gray-500">*Distribution yield ≈ annual income per unit ÷ unit price (approximate, 2025-26). AUM, yield & occupancy are reference figures for education only — verify on NSE before investing. Not SEBI-registered advice.</div>
-    </div>
-
-    <!-- ============ CRYPTOCURRENCY FOR INDIAN INVESTORS ============ -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="section-head font-semibold text-gray-900 text-base">🪙 Cryptocurrency — Regulated India Guide (Wealth Advisor View)</h3>
-        <span class="pill bg-purple-100 text-purple-700">New</span>
-      </div>
-      <p class="text-xs text-gray-500 mb-4">Crypto is a high-risk, high-reward asset class. <strong>Allocate max 1-5% of portfolio</strong> only after core equity/debt/gold is in place. Use only FIU-registered Indian exchanges. Tax: 30% flat + 1% TDS on every sale. No loss set-off allowed.</p>
-
-      <!-- Where to Buy (Regulated) -->
-      <div class="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-        <h4 class="font-semibold text-green-900 mb-2 flex items-center gap-1">✅ Where to Buy — FIU-Registered Indian Exchanges (Legal & Safe)</h4>
-        <div class="overflow-x-auto">
-          <table class="w-full text-xs">
-            <thead><tr class="text-left text-green-700 border-b border-green-200">
-              <th class="py-2 pr-2">Exchange</th><th class="py-2 pr-2">FIU Status</th><th class="py-2 pr-2">Coins</th><th class="py-2 pr-2">INR Deposit</th><th class="py-2 pr-2">Fees (Maker/Taker)</th><th class="py-2">Best For</th>
-            </tr></thead>
-            <tbody id="cryptoExchangesTable"></tbody>
-          </table>
-        </div>
-        <p class="text-[10px] text-green-700 mt-2"><strong>⚡ Pro Tip:</strong> Use <strong>CoinSwitch / CoinDCX / WazirX</strong> for INR on-ramp (UPI/IMPS), then transfer to <strong>hardware wallet (Ledger/Trezor)</strong> for long-term holding. Never keep large sums on exchange.</p>
-      </div>
-
-      <!-- Documents Needed (KYC) -->
-      <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-        <h4 class="font-semibold text-blue-900 mb-2 flex items-center gap-1">📄 Documents Needed — Complete KYC Checklist</h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
-          <div class="p-3 bg-white rounded border border-blue-100">
-            <p class="font-medium text-blue-800 mb-1">Mandatory (PAN-linked)</p>
-            <ul class="list-disc list-inside text-blue-700 space-y-0.5 text-xs">
-              <li>PAN Card (must match bank name)</li>
-              <li>Aadhaar Card (for eKYC OTP)</li>
-              <li>Bank Account (IFSC + cancelled cheque/statement)</li>
-              <li>Selfie / Liveness check (app-based)</li>
-              <li>Signature on white paper (some exchanges)</li>
-            </ul>
-          </div>
-          <div class="p-3 bg-white rounded border border-blue-100">
-            <p class="font-medium text-blue-800 mb-1">Processing Time & Limits</p>
-            <ul class="list-disc list-inside text-blue-700 space-y-0.5 text-xs">
-              <li>eKYC (Aadhaar OTP): <strong>5-15 mins</strong></li>
-              <li>Full KYC (video): <strong>few hours</strong></li>
-              <li>Daily deposit limit: <strong>₹50K-₹10L</strong> (varies by exchange & tier)</li>
-              <li>Withdrawal limit: <strong>₹2L-₹50L/day</strong></li>
-              <li>Age: <strong>18+</strong> only</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Live Returns (Day/Week) -->
-      <div class="mb-4 p-4 bg-purple-50 border border-purple-200 rounded-xl">
-        <h4 class="font-semibold text-purple-900 mb-2 flex items-center gap-1">📈 Live Returns — Top 10 by Market Cap (INR)</h4>
-        <div class="flex flex-wrap gap-2 mb-3">
-          <button onclick="fetchCryptoReturns()" id="cryptoRefreshBtn" class="px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition text-xs font-medium">🔄 Refresh Live</button>
-          <span id="cryptoReturnsStatus" class="text-xs text-gray-500 self-center"></span>
-        </div>
-        <div class="overflow-x-auto">
-          <table class="w-full text-xs" id="cryptoReturnsTable">
-            <thead><tr class="text-left text-purple-700 border-b border-purple-200">
-              <th class="py-2 pr-2">Coin</th><th class="py-2 pr-2">Price (₹)</th><th class="py-2 pr-2">24h %</th><th class="py-2 pr-2">7d %</th><th class="py-2 pr-2">30d %</th><th class="py-2 pr-2">Market Cap (₹Cr)</th><th class="py-2">Wealth Advisor View</th>
-            </tr></thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Wealth Advisor Strategy -->
-      <div class="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-xl">
-        <h4 class="font-semibold text-amber-900 mb-2 flex items-center gap-1">💰 Wealth Advisor Strategy — Make Money, Build Wealth, Pay Less Tax</h4>
-        <div class="space-y-3 text-sm text-amber-800">
-          <div class="p-3 bg-white rounded border border-amber-200">
-            <p class="font-medium mb-1">🎯 <strong>Core Allocation (80% of crypto bucket)</strong></p>
-            <p class="text-xs">BTC (50%) + ETH (30%) + SOL/BNB (20%) — Hold 3-5+ years. SIP weekly (₹1K-5K) via CoinDCX/CoinSwitch. Ignore noise. These are "digital gold" + "programmable money" infrastructure.</p>
-          </div>
-          <div class="p-3 bg-white rounded border border-amber-200">
-            <p class="font-medium mb-1">🚀 <strong>Satellite Bets (20% max)</strong></p>
-            <p class="text-xs">High-conviction alts: AI (FET, RNDR), RWA (ONDO, LINK), DeFi (UNI, AAVE), L2s (ARB, OP). Buy only on 40-60% drawdowns from ATH. Size tiny (₹500-2K each).</p>
-          </div>
-          <div class="p-3 bg-white rounded border border-amber-200">
-            <p class="font-medium mb-1">🛡️ <strong>Risk Management</strong></p>
-            <p class="text-xs">Never leverage. No futures/options. Stop-loss mental: -50% from entry = reassess thesis. Rebalance quarterly: trim winners, add to core. Keep 10% stablecoin (USDT/USDC) for crash buying.</p>
-          </div>
-          <div class="p-3 bg-white rounded border border-amber-200">
-            <p class="font-medium mb-1">💸 <strong>Tax Optimization (Legal)</strong></p>
-            <p class="text-xs"><strong>30% flat tax + 1% TDS</strong> on every sale. Strategies: (1) Hold >1 year — still 30% but no TDS on transfer to wallet. (2) Gift to parents (₹50K exempt) — they sell in their lower slab? No, crypto = 30% always. (3) <strong>Best: Don't sell. Borrow against it.</strong> Use centralized lending (Nexo, Ledger Live) or DeFi (Aave) — loan is tax-free, keep upside. (4) Offset via business income if trading as business (complex, need CA).</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Watchouts & Disclaimers -->
-      <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl">
-        <h4 class="font-semibold text-red-900 mb-2 flex items-center gap-1">⚠️ Watchouts, Disclaimers & Red Flags</h4>
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-red-800">
-          <div class="p-3 bg-white rounded border border-red-100">
-            <p class="font-medium mb-1">🚫 Avoid These</p>
-            <ul class="list-disc list-inside space-y-0.5">
-              <li>Foreign exchanges (Binance, Bybit, KuCoin) — <strong>illegal for Indians</strong> under FEMA, no INR support, account freeze risk</li>
-              <li>P2P USDT trades — <strong>bank account freeze risk</strong> (cybercrime-linked funds)</li>
-              <li>Leverage/Futures — 95% retail lose money</li>
-              <li>Meme coins / "guaranteed returns" schemes</li>
-              <li>Sharing seed phrase / private key with anyone</li>
-            </ul>
-          </div>
-          <div class="p-3 bg-white rounded border border-red-100">
-            <p class="font-medium mb-1">⚖️ Legal & Tax Reality</p>
-            <ul class="list-disc list-inside space-y-0.5">
-              <li><strong>30% tax</strong> on gains (Sec 115BBH) — no exemption, no slab benefit</li>
-              <li><strong>1% TDS</strong> on every sell/transfer (Sec 194S) — auto-deducted by exchange</li>
-              <li><strong>No loss set-off</strong> — losses can't offset other crypto gains or any income</li>
-              <li><strong>No 80C/80D</strong> — crypto not eligible for deductions</li>
-              <li>Must declare in ITR (Schedule VDA) — non-filing = notice risk</li>
-            </ul>
-          </div>
-          <div class="p-3 bg-white rounded border border-red-100">
-            <p class="font-medium mb-1">🔐 Security Non-Negotiables</p>
-            <ul class="list-disc list-inside space-y-0.5">
-              <li>Hardware wallet (Ledger/Trezor) for >₹50K holdings</li>
-              <li>2FA = Authenticator app (not SMS)</li>
-              <li>Seed phrase on metal plate, split in 2 locations</li>
-              <li>Exchange = on-ramp only, not storage</li>
-              <li>Test send ₹100 before large transfer</li>
-            </ul>
-          </div>
-          <div class="p-3 bg-white rounded border border-red-100">
-            <p class="font-medium mb-1">📉 Market Reality Check</p>
-            <ul class="list-disc list-inside space-y-0.5">
-              <li>BTC/ETH can drop <strong>50-80% in bear markets</strong> — only invest what you can lose</li>
-              <li>Correlation with NASDAQ = high (risk-on asset)</li>
-              <li>Regulation can change overnight (India bill pending)</li>
-              <li>Exchange insolvency = total loss (not insured like bank FDs)</li>
-              <li>Past returns ≠ future performance</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      <!-- Quick Start Action Plan -->
-      <div class="p-4 bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-xl">
-        <h4 class="font-semibold text-purple-900 mb-2 flex items-center gap-1">⚡ 15-Minute Quick Start (Do This Today)</h4>
-        <ol class="list-decimal list-inside space-y-1 text-sm text-purple-800">
-          <li>Pick exchange: <strong>CoinSwitch</strong> (easiest UX) or <strong>CoinDCX</strong> (most coins) — download app</li>
-          <li>Complete eKYC: PAN + Aadhaar OTP + Selfie + Bank (5 mins)</li>
-          <li>Deposit ₹1,000 via UPI — buy <strong>₹500 BTC + ₹500 ETH</strong> (first SIP)</li>
-          <li>Set up <strong>weekly auto-SIP</strong> (₹500-2,000) on same coins</li>
-          <li>Order <strong>Ledger Nano S Plus (₹7,999)</strong> from ledger.com — arrive in 7 days</li>
-          <li>When Ledger arrives: transfer coins off exchange → <strong>self-custody</strong></li>
-          <li>Track portfolio in <strong>CoinStats / Delta</strong> app (not exchange)</li>
-          <li>File ITR every July with Schedule VDA — sleep peacefully</li>
-        </ol>
-      </div>
-    </div>
-
-    <!-- Fundamental Picks -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <h3 class="font-semibold text-gray-900 mb-4 flex items-center gap-2">🏆 Top Fundamental Picks <span class="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded">Strong Moat + Uptrend</span></h3>
-      <p class="text-xs text-gray-500 mb-4">Stocks with durable competitive advantage, consistent earnings growth, clean balance sheets & strong technical momentum. Based on public financial data (FY24/FY25). These fit the <strong>Equity / Growth</strong> bucket of your allocation.</p>
-      <div class="space-y-3" id="fundamentalPicks"></div>
-      <button onclick="showFundamentalPicks()" class="w-full mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm font-medium">Show Detailed Analysis</button>
-    </div>
-
-    <!-- Logic Reference -->
-    <div class="mt-6 bg-white rounded-xl p-5 shadow-sm border border-gray-100">
-      <h3 class="font-semibold text-gray-900 mb-3">Decision Logic</h3>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs text-gray-700">
-        <div class="space-y-1">
-          <p class="font-medium text-green-600">✓ BUY Signals:</p>
-          <ul class="list-disc list-inside space-y-0.5 ml-3">
-            <li>SGX Nifty green (positive)</li>
-            <li>NASDAQ/DOW futures green</li>
-            <li>India VIX < 15 (stable)</li>
-            <li>NSE Advances > Declines</li>
-            <li>Commodities supportive</li>
-          </ul>
-        </div>
-        <div class="space-y-1">
-          <p class="font-medium text-red-600">✗ SELL Signals:</p>
-          <ul class="list-disc list-inside space-y-0.5 ml-3">
-            <li>SGX Nifty red (negative)</li>
-            <li>NASDAQ/DOW futures red</li>
-            <li>India VIX > 15 (volatile)</li>
-            <li>NSE Advances < Declines</li>
-            <li>Commodities weak</li>
-          </ul>
-        </div>
-      </div>
-      <div class="mt-3 p-3 bg-gray-50 rounded-lg text-xs text-gray-600">
-        <strong>Weightage:</strong> SGX (30%) + Global (25%) + VIX (20%) + Breadth (15%) + Commodities (10%)
-      </div>
-    </div>
-
-    <!-- Disclaimer -->
-    <footer class="mt-6 text-center text-xs text-gray-500">
-      <p class="font-semibold text-gray-700">© 2026 <span class="text-indigo-600 font-bold">Ruch</span> · Pre-Market Analyzer™ — crafted with 💜 &amp; a grateful heart 🙏</p>
-      <p class="mt-1">Data: Live quotes via the free Yahoo reader (no key needed) — or mock if offline. Add a free TwelveData key in ⚙️ Data for the most reliable source. All picks, signals & projections are <strong>model-based estimates for education</strong> — not SEBI-registered advice and NOT a profit guarantee. Markets involve risk of loss; verify on your broker before trading.</p>
-      <p class="mt-0.5">Best used 9:00-9:15 AM IST. Add to Home Screen for iOS app experience. Data stays in your browser (localStorage).</p>
-    </footer>
   </div>
 
-  <!-- Stock Suggestion Modal -->
-  <div id="modalOverlay" class="fixed inset-0 bg-black/50 hidden z-50" onclick="hideStockSuggestions()"></div>
+  <!-- Flipbook Container -->
+  <div class="flipbook-container" id="flipbookContainer">
+    <div class="flipbook" id="flipbook"></div>
+  </div>
 
-  <!-- Stock Suggestions by Range -->
+  <!-- Navigation -->
+  <nav class="flip-nav" aria-label="Page navigation">
+    <button class="nav-btn" id="prevPage" aria-label="Previous page" disabled>‹</button>
+    <div class="page-indicator" id="pageIndicator"></div>
+    <span class="page-counter" id="pageCounter">1 / 12</span>
+    <button class="nav-btn" id="nextPage" aria-label="Next page">›</button>
+  </nav>
+
+  <!-- FAB -->
+  <button class="fab" id="fabQuickAction" onclick="openQuickActionMenu()" aria-label="Quick actions">⚡</button>
+
+  <!-- Swipe Hint -->
+  <div class="swipe-hint" id="swipeHint">← Swipe or tap arrows →</div>
+
+  <!-- Modals Container -->
+  <div id="modalsContainer"></div>
+
+  <!-- Legacy modal shells (populated by JS) -->
+  <div id="modalOverlay" class="fixed inset-0 bg-black/50 hidden z-50" onclick="hideStockSuggestions()"></div>
   <div id="stockSuggestions" class="mt-6 hidden fixed inset-0 z-50 overflow-y-auto">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl">
@@ -1118,8 +438,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Portfolio Rebalance Advisor Modal -->
   <div id="rebalanceModal" class="fixed inset-0 bg-black/50 hidden z-50 overflow-y-auto" onclick="event.target===this && hideRebalanceModal()">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-xl" onclick="event.stopPropagation()">
@@ -1131,8 +449,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Concentration Risk Check Modal -->
   <div id="concentrationModal" class="fixed inset-0 bg-black/50 hidden z-50 overflow-y-auto" onclick="event.target===this && hideConcentrationModal()">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto shadow-xl" onclick="event.stopPropagation()">
@@ -1144,8 +460,6 @@
       </div>
     </div>
   </div>
-
-  <!-- Fundamental Picks Detail Modal -->
   <div id="fundamentalModal" class="fixed inset-0 bg-black/50 hidden z-50 overflow-y-auto" onclick="event.target===this && hideFundamentalModal()">
     <div class="min-h-screen flex items-center justify-center p-4">
       <div class="bg-white rounded-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-xl" onclick="event.stopPropagation()">
@@ -1157,8 +471,6 @@
       </div>
     </div>
   </div>
-
-  <!-- ============ PRO SUBSCRIPTION MODAL (Razorpay) ============ -->
   <div id="proModal" class="hidden fixed inset-0 z-[100] bg-black/50 backdrop-blur-sm flex items-center justify-center p-4" onclick="closeProModal()">
     <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl overflow-hidden" onclick="event.stopPropagation()">
       <div class="p-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white">
@@ -1169,23 +481,17 @@
           </div>
           <button onclick="closeProModal()" class="text-white/80 hover:text-white text-2xl leading-none">×</button>
         </div>
-        <div class="mt-3 flex items-end gap-1">
-          <span class="text-3xl font-black">₹199</span>
-          <span class="text-sm opacity-90 pb-1">/ month</span>
-        </div>
+        <div class="mt-3 flex items-end gap-1"><span class="text-3xl font-black">₹199</span><span class="text-sm opacity-90 pb-1">/ month</span></div>
       </div>
       <div class="p-5">
         <ul class="space-y-2 text-sm text-gray-700 mb-5">
           <li class="flex gap-2"><span class="text-green-600">✓</span> Full momentum screener results (not just the top 3)</li>
-          <li class="flex gap-2"><span class="text-green-600">✓</span> Recommendation engine unlocked — Top Performers, Mutual Funds, Bonds, Fee Calculator, Capital Builder &amp; Intraday Monitor</li>
           <li class="flex gap-2"><span class="text-green-600">✓</span> Unlimited portfolio holdings (free plan caps at 3)</li>
           <li class="flex gap-2"><span class="text-green-600">✓</span> Cancel anytime — Pro stays active till period ends</li>
         </ul>
         <label class="block text-xs font-medium text-gray-600 mb-1">Email for billing (UPI / card / netbanking)</label>
-        <input id="proEmail" type="email" placeholder="you@example.com" autocomplete="email"
-               class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm mb-3">
-        <button onclick="subscribePro()" id="proSubscribeBtn"
-                class="w-full py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold text-sm">Subscribe Now</button>
+        <input id="proEmail" type="email" placeholder="you@example.com" autocomplete="email" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent text-sm mb-3">
+        <button onclick="subscribePro()" id="proSubscribeBtn" class="w-full py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition font-semibold text-sm">Subscribe Now</button>
         <div id="proMsg" class="hidden mt-3 text-xs text-red-600"></div>
         <p class="mt-3 text-[10px] text-gray-400 text-center">Payments handled securely by Razorpay. This is a tool subscription, not investment advice.</p>
         <div id="ownerUnlockRow" class="mt-4 pt-3 border-t border-gray-100">
@@ -1203,6 +509,630 @@
   </div>
 
   <script>
+    // ============ GEMSTONE COLOR CONSTANTS ============
+    const COLORS = {
+      ruby: '#e0115f', rubyLight: '#ff6b9d', rubyBg: '#fdf2f8', rubyBorder: '#fce7f3',
+      citrine: '#e4d00a', citrineLight: '#ffdf00', citrineGlow: '#f5c542', citrineBg: '#fefce8', citrineBorder: '#fef3c7',
+      peridot: '#87a922', peridotLight: '#a8d035', peridotGlow: '#84cc16', peridotBg: '#f7fee7', peridotBorder: '#dcfce7',
+      obsidian: '#0f172a', pearl: '#fafafa', mist: '#f1f5f9'
+    };
+
+    // ============ PAGE DEFINITIONS ============
+    const PAGES = [
+      { id: 'dashboard', title: '📊 Pre-Market Dashboard', subtitle: 'Live cues → today\'s bias', icon: '📊', theme: 'ruby', render: renderDashboard },
+      { id: 'geopolitics', title: '🌍 Geopolitics & Metals', subtitle: 'War, oil, gold → market direction', icon: '🌍', theme: 'ruby', render: renderGeopolitics },
+      { id: 'risk', title: '🛡️ Risk Profile', subtitle: 'Know your investor DNA', icon: '🛡️', theme: 'peridot', render: renderRiskProfile },
+      { id: 'allocation', title: '🎯 Asset Allocation', subtitle: 'Your personalized mix', icon: '🎯', theme: 'citrine', render: renderAllocation },
+      { id: 'momentum', title: '🚀 Momentum Screener', subtitle: 'RSI · MACD · Beta live', icon: '🚀', theme: 'ruby', render: renderMomentumPage },
+      { id: 'watchlist', title: '🔔 Personal Watchlist', subtitle: 'Overbought alerts', icon: '🔔', theme: 'peridot', render: renderWatchlist },
+      { id: 'portfolio', title: '📈 Position Analyzer', subtitle: 'Live price → action plan', icon: '📈', theme: 'citrine', render: renderPositionAnalyzer },
+      { id: 'goals', title: '🎯 Goal Planner', subtitle: 'SIP math & rebalance', icon: '🎯', theme: 'peridot', render: renderGoals },
+      { id: 'capital', title: '💰 Capital Builder', subtitle: 'Monthly plan with exact quantities', icon: '💰', theme: 'citrine', render: renderCapital },
+      { id: 'intraday', title: '⚡ Intraday Monitor', subtitle: 'Live exit signals', icon: '⚡', theme: 'ruby', render: renderIntraday },
+      { id: 'tracker', title: '📋 Portfolio Tracker', subtitle: 'Holdings P&L & sell plan', icon: '📋', theme: 'peridot', render: renderTracker },
+      { id: 'crypto', title: '🪙 Crypto Guide (India)', subtitle: 'Regulated exchanges, tax, strategy', icon: '🪙', theme: 'citrine', render: renderCrypto }
+    ];
+
+    // ============ STATE ============
+    let currentPage = 0;
+    let touchStartX = 0;
+    let isAnimating = false;
+
+    // ============ INITIALIZATION ============
+    document.addEventListener('DOMContentLoaded', () => {
+      buildFlipbook();
+      setupEventListeners();
+      // Auto-hide swipe hint after first interaction
+      setTimeout(() => { document.getElementById('swipeHint').style.opacity = '0'; }, 5000);
+    });
+
+    function buildFlipbook() {
+      const container = document.getElementById('flipbook');
+      const indicator = document.getElementById('pageIndicator');
+      
+      PAGES.forEach((page, i) => {
+        // Create flip page
+        const flipPage = document.createElement('div');
+        flipPage.className = 'flip-page';
+        flipPage.id = `page-${page.id}`;
+        flipPage.innerHTML = `
+          <div class="page-front">
+            <div class="page-content" style="background:${getThemeBg(page.theme)};"></div>
+          </div>
+          <div class="page-back">
+            <div class="page-content" style="background:${getThemeBg(page.theme)};"></div>
+          </div>
+        `;
+        container.appendChild(flipPage);
+        
+        // Create dot
+        const dot = document.createElement('button');
+        dot.className = 'page-dot' + (i === 0 ? ' active' : '');
+        dot.setAttribute('data-page', i);
+        dot.setAttribute('aria-label', `Go to ${page.title}`);
+        dot.onclick = () => goToPage(i);
+        indicator.appendChild(dot);
+      });
+      
+      updateNavigation();
+    }
+
+    function getThemeBg(theme) {
+      return theme === 'ruby' ? 'var(--ruby-bg)' : theme === 'citrine' ? 'var(--citrine-bg)' : 'var(--peridot-bg)';
+    }
+
+    function setupEventListeners() {
+      // Navigation buttons
+      document.getElementById('prevPage').onclick = () => goToPage(currentPage - 1);
+      document.getElementById('nextPage').onclick = () => goToPage(currentPage + 1);
+      
+      // Keyboard
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'ArrowLeft') goToPage(currentPage - 1);
+        if (e.key === 'ArrowRight') goToPage(currentPage + 1);
+        if (e.key === 'Home') goToPage(0);
+        if (e.key === 'End') goToPage(PAGES.length - 1);
+      });
+      
+      // Touch swipe
+      const flipbook = document.getElementById('flipbookContainer');
+      flipbook.addEventListener('touchstart', (e) => { touchStartX = e.touches[0].clientX; }, { passive: true });
+      flipbook.addEventListener('touchend', (e) => {
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        if (Math.abs(dx) > 50) {
+          if (dx > 0) goToPage(currentPage - 1);
+          else goToPage(currentPage + 1);
+        }
+      }, { passive: true });
+      
+      // Mouse drag (desktop)
+      let isDragging = false, dragStartX = 0;
+      flipbook.addEventListener('mousedown', (e) => { isDragging = true; dragStartX = e.clientX; });
+      document.addEventListener('mousemove', (e) => { if (isDragging) e.preventDefault(); });
+      document.addEventListener('mouseup', (e) => {
+        if (isDragging) {
+          const dx = e.clientX - dragStartX;
+          if (Math.abs(dx) > 80) {
+            if (dx > 0) goToPage(currentPage - 1);
+            else goToPage(currentPage + 1);
+          }
+          isDragging = false;
+        }
+      });
+    }
+
+    function goToPage(index) {
+      if (isAnimating || index < 0 || index >= PAGES.length || index === currentPage) return;
+
+      isAnimating = true;
+      const flipbook = document.getElementById('flipbook');
+      const pages = flipbook.querySelectorAll('.flip-page');
+
+      const direction = index > currentPage ? 'forward' : 'backward';
+
+      if (direction === 'forward') {
+        // Outgoing page lifts above all and flips away; future pages stay unflipped beneath
+        pages[currentPage].style.zIndex = 120;
+        pages[currentPage].classList.add('flipped');
+      } else {
+        // Incoming page lifts above all and rotates back into view; pages in between become "past" instantly
+        pages[index].style.zIndex = 120;
+        pages[index].classList.remove('flipped');
+        for (let i = index + 1; i <= currentPage; i++) pages[i].classList.add('flipped');
+      }
+
+      setTimeout(() => {
+        renderPage(index);
+        currentPage = index;
+        updateNavigation();
+        isAnimating = false;
+      }, 380);
+    }
+
+    function applyZ() {
+      const pages = document.querySelectorAll('#flipbook .flip-page');
+      pages.forEach((p, i) => {
+        let z;
+        if (i === currentPage) z = 100;
+        else if (i === currentPage + 1 || i === currentPage - 1) z = 90;
+        else if (i < currentPage) z = 10 + i;
+        else z = 85 - Math.min(60, i - currentPage);
+        p.style.zIndex = z;
+        p.classList.remove('flip-anim');
+      });
+    }
+
+    function updateNavigation() {
+      applyZ();
+      document.getElementById('prevPage').disabled = currentPage === 0;
+      document.getElementById('nextPage').disabled = currentPage === PAGES.length - 1;
+      document.getElementById('pageCounter').textContent = `${currentPage + 1} / ${PAGES.length}`;
+
+      document.querySelectorAll('.page-dot').forEach((dot, i) => {
+        dot.classList.toggle('active', i === currentPage);
+      });
+
+      // Update page title in browser tab
+      document.title = `${PAGES[currentPage].title} | Pre-Market Analyzer`;
+    }
+
+    function renderPage(index) {
+      const page = PAGES[index];
+      const frontContent = document.querySelector(`#page-${page.id} .page-front .page-content`);
+      const backContent = document.querySelector(`#page-${page.id} .page-back .page-content`);
+      
+      if (frontContent.dataset.rendered !== '1') {
+        frontContent.innerHTML = page.render();
+        frontContent.dataset.rendered = '1';
+        backContent.innerHTML = `<div style="padding:20px;text-align:center;color:#94a3b8;"><p>📖 ${page.title}</p><p class="text-xs mt-2">Back of card — swipe to continue</p></div>`;
+      }
+      // Re-attach event listeners for interactive elements
+      attachPageListeners(page.id);
+      runPageHooks(page.id);
+    }
+
+    function attachPageListeners(pageId) {
+      // Inline onclick handlers injected with each page's HTML are authoritative;
+      // do not override them here (a previous JS binding passed NaN indexes to selectRiskOption).
+      const pageEl = document.getElementById(`page-${pageId}`);
+      if (!pageEl) return;
+    }
+
+    // ============ PAGE RENDERERS ============
+    function renderDashboard() {
+      return `
+        <div class="page-header" style="color:var(--ruby);">
+          <div class="page-title">📊 Pre-Market Dashboard</div>
+          <div class="page-subtitle">Live global cues → today's directional bias</div>
+        </div>
+        <div id="dataSourceBadge" class="mb-3"></div>
+
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
+          <div class="card card-ruby pop-in"><div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">SGX Nifty</div><div id="sgxCurrent" class="font-mono text-lg font-bold text-gray-900 dark:text-white">—</div><span id="sgxChange" class="font-mono font-semibold text-sm"></span> <span id="sgxSignal" class="font-semibold px-2.5 py-0.5 rounded-full text-xs"></span></div>
+          <div class="card card-ruby pop-in"><div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">NASDAQ</div><div id="nasdaqCurrent" class="font-mono text-lg font-bold text-gray-900 dark:text-white">—</div><span id="nasdaqChange" class="font-mono font-semibold text-sm"></span> <span id="nasdaqSignal" class="font-semibold px-2.5 py-0.5 rounded-full text-xs"></span></div>
+          <div class="card card-ruby pop-in"><div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Dow Jones</div><div id="dowCurrent" class="font-mono text-lg font-bold text-gray-900 dark:text-white">—</div><span id="dowChange" class="font-mono font-semibold text-sm"></span> <span id="dowSignal" class="font-semibold px-2.5 py-0.5 rounded-full text-xs"></span></div>
+          <div class="card card-peridot pop-in"><div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">India VIX</div><div id="vixCurrent" class="font-mono text-lg font-bold text-gray-900 dark:text-white">—</div><div id="vixLevel" class="font-mono font-semibold text-sm"></div><span id="vixSignal" class="font-semibold px-2.5 py-0.5 rounded-full text-xs"></span></div>
+          <div class="card card-citrine pop-in"><div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Gold ₹/10g</div><div id="commodityGold" class="font-mono text-lg font-bold text-gray-900 dark:text-white">—</div></div>
+          <div class="card card-citrine pop-in"><div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Crude ₹/bbl · Silver</div><div class="flex items-baseline gap-2"><span id="commodityOil" class="font-mono text-lg font-bold text-gray-900 dark:text-white">—</span><span id="commoditySilver" class="font-mono text-xs text-gray-500"></span></div><span id="commoditySignal" class="font-semibold px-2.5 py-0.5 rounded-full text-xs"></span></div>
+        </div>
+
+        <div class="card card-peridot mb-4 pop-in">
+          <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <span class="font-semibold text-gray-900 dark:text-white">NSE Market Breadth</span>
+            <span id="nseSignal" class="font-semibold px-2.5 py-0.5 rounded-full text-xs"></span>
+          </div>
+          <div class="flex items-center gap-4 text-xs">
+            <div class="flex-1"><div class="flex justify-between mb-1"><span>Advances</span><span id="nseAdvances" class="font-semibold text-green-600">—</span></div><div class="range-bar"></div></div>
+            <div class="flex-1"><div class="flex justify-between mb-1"><span>Declines</span><span id="nseDeclines" class="font-semibold text-red-600">—</span></div><div class="range-bar"></div></div>
+          </div>
+        </div>
+
+        <div id="recommendationBanner" class="card mb-4 pop-in" style="background:linear-gradient(135deg,var(--ruby-bg),var(--citrine-bg));border:2px solid var(--ruby-border);">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <div id="recAction" class="font-bold text-lg text-gray-900 dark:text-white">Analyzing...</div>
+              <div id="recReason" class="text-sm text-gray-600 dark:text-gray-300 mt-1">Gathering global cues...</div>
+            </div>
+            <div id="recConfidence" class="font-mono text-sm text-gray-500">--</div>
+          </div>
+        </div>
+
+        <div id="tomorrowPrediction" class="mb-4 hidden">
+          <div class="card pop-in" style="background:linear-gradient(135deg,var(--peridot-bg),var(--ruby-bg));border:2px solid var(--peridot-border);">
+            <div class="font-semibold text-gray-900 dark:text-white flex items-center gap-2 mb-3">🔮 Tomorrow's Direction</div>
+            <div id="tpBox" class="rounded-2xl p-5 shadow-lg text-white">
+              <div class="flex items-center justify-between flex-wrap gap-3 mb-2">
+                <div id="tpHeading" class="text-xl font-black">Predicting...</div>
+                <div class="text-center px-4 py-2 rounded-xl bg-white/20"><div id="tpConfidence" class="text-2xl font-black">--</div><div class="text-[10px] uppercase tracking-wider opacity-80">Confidence</div></div>
+              </div>
+              <div id="tpReason" class="text-sm opacity-90 mb-3">Gathering cues...</div>
+              <div id="tpChips" class="flex flex-wrap gap-1.5"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button onclick="runGlobalLocalAnalysis()" id="glaBtn" class="top-btn ruby">🤖 AI Global→Local Analysis</button>
+          <span id="glaStatus" class="text-xs text-gray-500 self-center"></span>
+          <button onclick="showStockSuggestions()" class="top-btn peridot">💡 Stock Ideas</button>
+          <button onclick="askAbcdFromPortfolio()" class="top-btn citrine">🧠 Ask Expert Panel</button>
+        </div>
+        <div id="glaResult"></div>
+      `;
+    }
+
+    function renderGeopolitics() {
+      return `
+        <div class="page-header" style="color:var(--ruby);">
+          <div class="page-title">${PAGES[1].icon} Geopolitics, War & Metals</div>
+          <div class="page-subtitle">Market direction driver — risk-off vs risk-on</div>
+        </div>
+
+        <div class="card card-ruby mb-4 pop-in">
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-semibold text-gray-900 dark:text-white">Geopolitical Risk Level</span>
+            <span id="geoRiskLabel" class="font-bold text-gray-900 dark:text-white">Calm / Peaceful</span>
+          </div>
+          <label class="flex items-center gap-2 mb-2 cursor-pointer">
+            <input type="checkbox" id="geoAuto" checked onchange="toggleGeoAuto()" class="w-4 h-4 accent-ruby">
+            <span class="text-xs text-gray-500">🔗 Auto from live market data</span>
+          </label>
+          <input type="range" id="geoRisk" min="1" max="5" value="2" class="w-full range-bar" oninput="updateGeoOutlook(); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
+          <div id="geoRiskNote" class="text-xs text-gray-500 mt-1">Auto: gathering data…</div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div class="card card-citrine pop-in">
+            <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Gold (₹/10g)</div>
+            <input type="number" id="geoGold" value="72500" class="w-full" oninput="markGeoManual('gold'); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
+          </div>
+          <div class="card card-citrine pop-in">
+            <div class="text-[10px] font-semibold text-gray-500 uppercase tracking-wider mb-1">Crude Oil (₹/bbl)</div>
+            <input type="number" id="geoOil" value="7200" class="w-full" oninput="markGeoManual('oil'); updateTomorrowPrediction(window.lastMarketData || generateMockData())">
+          </div>
+        </div>
+        <div class="card card-peridot mb-4 pop-in">
+          <button onclick="useMarketGeo()" class="top-btn peridot w-full">🔄 Use Today's Market Values</button>
+        </div>
+
+        <div id="geoOutlook" class="mb-4"></div>
+        <div id="geoGoldOil" class="card card-citrine mb-4 pop-in"></div>
+        <div id="geoGoldGuide" class="hidden"></div>
+
+        <div class="card card-ruby pop-in">
+          <div class="font-semibold text-gray-900 dark:text-white mb-3">How War Moves Assets</div>
+          <ul class="space-y-2 text-sm text-gray-700 dark:text-gray-200">
+            <li>🥇 <strong>Gold</strong> — Safe haven, spikes in conflict. Buy SGB/ETF.</li>
+            <li>🥈 <strong>Silver</strong> — Poor man's gold + industrial. Tracks gold.</li>
+            <li>🛢️ <strong>Crude Oil</strong> — Supply shock → inflation. Bad for autos/airlines, good for ONGC/Reliance.</li>
+            <li>⚙️ <strong>Base Metals</strong> — Mixed: supply disruption bullish, demand destruction bearish.</li>
+            <li>📉 <strong>Equities</strong> — Risk-off in serious war (except defence/gold). VIX spikes.</li>
+          </ul>
+        </div>
+      `;
+    }
+
+    function renderRiskProfile() {
+      // Risk questions rendered by JS
+      return `
+        <div class="page-header" style="color:var(--peridot);">
+          <div class="page-title">${PAGES[2].icon} Know Your Risk Profile</div>
+          <div class="page-subtitle">6 questions → your investor DNA</div>
+        </div>
+        <div id="riskQuestions" class="space-y-3 mb-4"></div>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="calculateRiskProfile()" class="top-btn peridot flex-1 min-w-[180px]">Get My Profile & Allocation</button>
+          <button onclick="resetRiskProfile()" class="top-btn ghost flex-1 min-w-[180px]">Reset</button>
+        </div>
+      `;
+    }
+
+    function renderAllocation() {
+      return `
+        <div class="page-header" style="color:var(--citrine);">
+          <div class="page-title">${PAGES[3].icon} Your Asset Allocation</div>
+          <div class="page-subtitle">Diversification across growth, income, hedge & liquidity</div>
+        </div>
+        <div id="allocationSection" class="hidden">
+          <div id="allocationResult" class="space-y-4"></div>
+        </div>
+      `;
+    }
+
+    function renderMomentumPage() {
+      return `
+        <div class="page-header" style="color:var(--ruby);">
+          <div class="page-title">${PAGES[4].icon} Momentum Screener</div>
+          <div class="page-subtitle">RSI · MACD · Beta from live prices</div>
+        </div>
+        <div class="card card-ruby mb-4 pop-in">
+          <div class="flex flex-wrap items-center gap-3 mb-3">
+            <label class="font-medium text-gray-700">Invest: ₹</label>
+            <input type="number" id="momInvest" value="40000" min="500" step="500" class="w-24" oninput="renderMomentum()">
+            <label class="ml-2 font-medium text-gray-700">Broker:</label>
+            <select id="momBroker" onchange="renderMomentum()" class="px-3 py-2">
+              <option value="groww">Groww</option><option value="zerodha">Zerodha</option><option value="dhan">Dhan</option>
+              <option value="upstox">Upstox</option><option value="angel">Angel One</option>
+              <option value="icici">ICICI Direct</option><option value="hdfc">HDFC Securities</option>
+            </select>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-3">
+            <button onclick="scanMomentum()" id="momScanBtn" class="top-btn ruby">🚀 Scan Now</button>
+            <span id="momStatus" class="text-xs text-gray-500 self-center"></span>
+          </div>
+          <div class="flex flex-wrap gap-2 mb-3" id="momFilters">
+            <button class="px-3 py-1.5 rounded-full text-xs font-medium bg-ruby text-white" data-mf="all" onclick="filterMomentum('all', this)">All</button>
+            <button class="px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600" data-mf="overbought" onclick="filterMomentum('overbought', this)">Overbought 🔥</button>
+            <button class="px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600" data-mf="verybull" onclick="filterMomentum('verybull', this)">Very Bullish 🚀</button>
+            <button class="px-3 py-1.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600" data-mf="bull" onclick="filterMomentum('bull', this)">Bullish ✅</button>
+          </div>
+        </div>
+        <div id="momAdvice" class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4"></div>
+        <div id="momResult" class="space-y-2"></div>
+        <div id="topPicks" class="mt-4"></div>
+        
+        <!-- RSI/MACD/Beta Guide -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mt-4">
+          <div class="metric"><div class="metric-value">RSI</div><div class="metric-label">Heat Meter (0-100)</div></div>
+          <div class="metric" style="background:linear-gradient(135deg,rgba(135,169,34,0.06),rgba(228,208,10,0.06));border-color:rgba(135,169,34,0.08);"><div class="metric-value" style="color:var(--peridot)">MACD</div><div class="metric-label">Who's in Charge</div></div>
+          <div class="metric" style="background:linear-gradient(135deg,rgba(228,208,10,0.06),rgba(135,169,34,0.06));border-color:rgba(228,208,10,0.08);"><div class="metric-value" style="color:var(--citrine)">Beta</div><div class="metric-label">Thrill Factor</div></div>
+          <div class="metric" style="background:linear-gradient(135deg,rgba(224,17,95,0.06),rgba(135,169,34,0.06));border-color:rgba(224,17,95,0.08);"><div class="metric-value" style="color:var(--ruby)">1W Trend</div><div class="metric-label">This Week's Mood</div></div>
+        </div>
+      `;
+    }
+
+    function renderWatchlist() {
+      return `
+        <div class="page-header" style="color:var(--peridot);">
+          <div class="page-title">${PAGES[5].icon} Personal Watchlist</div>
+          <div class="page-subtitle">Private overbought alerts — stored in your browser</div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <input type="text" id="watchSymbol" placeholder="Add symbol (e.g., RELIANCE, CUPID)" class="flex-1 min-w-[180px]" style="text-transform:uppercase;">
+          <button onclick="addWatchSymbol()" class="top-btn peridot">+ Watch</button>
+          <button onclick="refreshPersonalWatch(true)" class="top-btn citrine">Check RSI Now</button>
+          <button onclick="toggleWatchAlerts()" id="watchAlertBtn" class="top-btn ghost">🔔 Alerts</button>
+          <span id="watchStatus" class="text-xs text-gray-500"></span>
+        </div>
+        <div id="watchResult" class="text-sm"></div>
+      `;
+    }
+
+    function renderPositionAnalyzer() {
+      return `
+        <div class="page-header" style="color:var(--citrine);">
+          <div class="page-title">${PAGES[6].icon} Position Analyzer</div>
+          <div class="page-subtitle">Live price → Buy / Hold / Sell / Book Profit</div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <input type="text" id="portfolioSymbol" placeholder="Symbol (e.g., RELIANCE, TCS)" class="text-uppercase" style="text-transform:uppercase;">
+          <input type="number" id="portfolioQty" placeholder="Qty Held" min="1">
+          <input type="number" id="portfolioAvgPrice" placeholder="Avg Buy Price (₹)" step="0.01" min="0">
+        </div>
+        <div class="mb-4">
+          <label class="text-xs text-gray-500">Total portfolio value (₹) — optional, enables concentration check</label>
+          <input type="number" id="portfolioValue" placeholder="e.g. 1000000" class="w-full sm:w-1/2 mt-1" min="0">
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <button onclick="analyzePortfolio()" id="analyzeBtn" class="top-btn citrine flex-1">Fetch Live & Recommend</button>
+          <button onclick="showStockSuggestions()" class="top-btn peridot flex-1">Get Stock Ideas</button>
+          <button onclick="askAbcdFromPortfolio()" class="top-btn citrine flex-1">🧠 Ask Expert Panel</button>
+        </div>
+        <div id="portfolioResult" class="hidden"></div>
+      `;
+    }
+
+    function renderGoals() {
+      return `
+        <div class="page-header" style="color:var(--peridot);">
+          <div class="page-title">${PAGES[7].icon} Goal Planner</div>
+          <div class="page-subtitle">SIP math, rebalance alerts, concentration risk</div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div>
+            <label class="text-xs font-medium text-gray-600">Goal Type</label>
+            <select id="goalType" class="w-full mt-1">
+              <option value="home">🏠 Home Down Payment</option>
+              <option value="education">🎓 Child Education</option>
+              <option value="business">💼 Business Capital</option>
+              <option value="retirement">🏖️ Early Retirement</option>
+              <option value="vehicle">🚗 Vehicle Upgrade</option>
+              <option value="income">💵 Regular Income</option>
+              <option value="emergency">🛟 Emergency Fund</option>
+              <option value="custom">✏️ Custom</option>
+            </select>
+          </div>
+          <div><label class="text-xs font-medium text-gray-600">Target (₹)</label><input type="number" id="goalAmount" value="5000000" step="100000" min="100000" class="w-full mt-1"></div>
+          <div><label class="text-xs font-medium text-gray-600">Years</label><input type="number" id="goalYears" value="7" min="1" max="30" class="w-full mt-1"></div>
+          <div><label class="text-xs font-medium text-gray-600">Expected Return %</label><input type="number" id="expectedReturn" value="12" step="0.5" min="4" max="20" class="w-full mt-1"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-4">
+          <button onclick="calculateGoalPlan()" class="top-btn peridot">Calculate Plan</button>
+          <button onclick="showRebalanceAdvice()" class="top-btn citrine">Rebalance Advice</button>
+          <button onclick="showConcentrationCheck()" class="top-btn ruby">Concentration Check</button>
+        </div>
+        <div id="goalResult" class="hidden"></div>
+      `;
+    }
+
+    function renderCapital() {
+      return `
+        <div class="page-header" style="color:var(--citrine);">
+          <div class="page-title">${PAGES[8].icon} Capital-Based Portfolio Builder</div>
+          <div class="page-subtitle">Monthly amount → exact quantities & SIPs</div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+          <div><label class="text-xs font-medium text-gray-600">Monthly Investable (₹)</label><input type="number" id="capAmount" value="10000" min="500" class="w-full mt-1"></div>
+          <div><label class="text-xs font-medium text-gray-600">Horizon</label><select id="capHorizon" class="w-full mt-1"><option value="short">Short (1-3 mo)</option><option value="mid">Mid (3-6 mo)</option><option value="long" selected>Long (6 mo-1 yr+)</option></select></div>
+          <div><label class="text-xs font-medium text-gray-600">Risk Profile</label><select id="capProfile" class="w-full mt-1"><option value="auto" selected>Auto (from Risk Profile)</option><option value="conservative">Conservative</option><option value="moderate">Moderate</option><option value="aggressive">Aggressive</option></select></div>
+        </div>
+        <button onclick="buildCapitalPlan()" class="top-btn citrine w-full sm:w-auto">Build My Monthly Plan</button>
+        <div id="capResult" class="mt-4"></div>
+      `;
+    }
+
+    function renderIntraday() {
+      return `
+        <div class="page-header" style="color:var(--ruby);">
+          <div class="page-title">${PAGES[9].icon} Intraday Live Sell Monitor</div>
+          <div class="page-subtitle">Live exit signals — SL, target, RSI, momentum, time</div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+          <div><label class="text-xs font-medium text-gray-600">Symbol</label><input type="text" id="intraSymbol" placeholder="RELIANCE" class="w-full mt-1 text-uppercase" style="text-transform:uppercase;"></div>
+          <div><label class="text-xs font-medium text-gray-600">Qty</label><input type="number" id="intraQty" value="10" min="1" class="w-full mt-1"></div>
+          <div><label class="text-xs font-medium text-gray-600">Entry (₹)</label><input type="number" id="intraEntry" class="w-full mt-1" min="0"></div>
+          <div><label class="text-xs font-medium text-gray-600">Feed</label><select id="intraMode" class="w-full mt-1"><option value="simulate" selected>Simulated</option><option value="live">Live (if API)</option></select></div>
+        </div>
+        <div class="flex gap-2 mb-4">
+          <button onclick="startIntradayMonitor()" id="intraStartBtn" class="top-btn ruby flex-1">Start Monitor</button>
+          <button onclick="stopIntradayMonitor()" class="top-btn ghost flex-1">Stop</button>
+        </div>
+        <div id="intraResult"></div>
+      `;
+    }
+
+    function renderTracker() {
+      return `
+        <div class="page-header" style="color:var(--peridot);">
+          <div class="page-title">${PAGES[10].icon} Portfolio Tracker</div>
+          <div class="page-subtitle">Holdings → live P&L → sell plan with dates</div>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-4 p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
+          <div><label class="text-xs font-medium text-gray-600">Type</label><select id="ptType" class="w-full mt-1"><option value="stock">Stock</option><option value="mf">Mutual Fund</option></select></div>
+          <div><label class="text-xs font-medium text-gray-600">Symbol / Fund</label><input type="text" id="ptSymbol" placeholder="RELIANCE" class="w-full mt-1 text-uppercase" style="text-transform:uppercase;"></div>
+          <div><label class="text-xs font-medium text-gray-600">Avg Buy (₹)</label><input type="number" id="ptBuy" class="w-full mt-1" min="0" step="0.01"></div>
+          <div><label class="text-xs font-medium text-gray-600">Qty / Units</label><input type="number" id="ptQty" class="w-full mt-1" min="0" step="0.001"></div>
+          <div class="flex items-end"><button onclick="addHolding()" class="top-btn peridot w-full">Add</button></div>
+        </div>
+        <div class="flex flex-wrap gap-2 mb-3">
+          <button onclick="refreshHoldings()" class="top-btn peridot">🔄 Refresh Prices</button>
+          <button onclick="exportHoldingsCsv()" class="top-btn citrine">📥 Export CSV</button>
+        </div>
+        <div id="portfolioTableWrap" class="overflow-x-auto"></div>
+      `;
+    }
+
+    function renderCrypto() {
+      return `
+        <div class="page-header" style="color:var(--citrine);">
+          <div class="page-title">${PAGES[11].icon} Cryptocurrency — India Guide</div>
+          <div class="page-subtitle">Regulated exchanges • KYC • Live returns • Tax strategy • 15-min start</div>
+        </div>
+
+        <!-- Where to Buy -->
+        <div class="card card-citrine mb-4 pop-in">
+          <div class="font-semibold text-gray-900 dark:text-white mb-3 flex items-center gap-2">✅ Where to Buy — FIU-Registered Indian Exchanges</div>
+          <div class="overflow-x-auto">
+            <table id="cryptoExchangesTable"><thead><tr>
+              <th>Exchange</th><th>FIU Status</th><th>Coins</th><th>INR Deposit</th><th>Fees (M/T)</th><th>Best For</th>
+            </tr></thead><tbody></tbody></table>
+          </div>
+          <p class="text-xs text-amber-800 mt-2">💡 Use CoinSwitch/CoinDCX/WazirX for INR on-ramp → transfer to Ledger/Trezor for cold storage.</p>
+        </div>
+
+        <!-- KYC Docs -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div class="card card-peridot pop-in">
+            <div class="font-semibold text-gray-900 dark:text-white mb-2">📄 Mandatory KYC Documents</div>
+            <ul class="space-y-1 text-xs text-gray-700 dark:text-gray-200">
+              <li>✅ PAN Card (must match bank name)</li>
+              <li>✅ Aadhaar Card (for eKYC OTP)</li>
+              <li>✅ Bank Account (IFSC + cancelled cheque/statement)</li>
+              <li>✅ Selfie / Liveness check (app-based)</li>
+              <li>✅ Signature on white paper (some exchanges)</li>
+            </ul>
+          </div>
+          <div class="card card-ruby pop-in">
+            <div class="font-semibold text-gray-900 dark:text-white mb-2">⏱️ Processing & Limits</div>
+            <ul class="space-y-1 text-xs text-gray-700 dark:text-gray-200">
+              <li>eKYC (Aadhaar OTP): <strong>5-15 mins</strong></li>
+              <li>Full KYC (video): <strong>few hours</strong></li>
+              <li>Daily deposit: <strong>₹50K-₹10L</strong></li>
+              <li>Withdrawal: <strong>₹2L-₹50L/day</strong></li>
+              <li>Age: <strong>18+</strong> only</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Live Returns -->
+        <div class="card card-ruby mb-4 pop-in">
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-semibold text-gray-900 dark:text-white">📈 Live Returns — Top 10 (INR)</span>
+            <div class="flex items-center gap-2">
+              <button onclick="fetchCryptoReturns()" id="cryptoRefreshBtn" class="top-btn ruby text-xs">🔄 Refresh</button>
+              <span id="cryptoReturnsStatus" class="text-xs text-gray-500">Loading...</span>
+            </div>
+          </div>
+          <div class="overflow-x-auto">
+            <table id="cryptoReturnsTable"><thead><tr>
+              <th>Coin</th><th>Price (₹)</th><th>24h</th><th>7d</th><th>30d</th><th>Mkt Cap</th><th>Wealth Advisor View</th>
+            </tr></thead><tbody></tbody></table>
+          </div>
+        </div>
+
+        <!-- Strategy -->
+        <div class="space-y-3 mb-4">
+          <div class="card card-citrine pop-in"><div class="font-semibold mb-1">🎯 Core (80%)</div><p class="text-sm text-gray-700 dark:text-gray-200">BTC 50% + ETH 30% + SOL/BNB 20%. SIP weekly. Hold 5+ years. Digital gold + programmable money.</p></div>
+          <div class="card card-peridot pop-in"><div class="font-semibold mb-1">⚙️ Infrastructure (15%)</div><p class="text-sm text-gray-700 dark:text-gray-200">SOL, BNB, ARB, OP, LINK, UNI, AAVE. Ecosystem revenue. Buy 30-50% drawdowns. 2-4 yr horizon.</p></div>
+          <div class="card card-ruby pop-in"><div class="font-semibold mb-1">🚀 Narrative Bets (5% max)</div><p class="text-sm text-gray-700 dark:text-gray-200">AI (FET, RNDR), RWA (ONDO), DePIN. High failure rate. Only ≤2% each. Buy -60% from ATH.</p></div>
+          <div class="card card-citrine pop-in"><div class="font-semibold mb-1">💵 Stablecoins (10%)</div><p class="text-sm text-gray-700 dark:text-gray-200">USDT/USDC = dry powder. Deploy on crashes. Earn 5-10% yield on Aave/Ledger Live.</p></div>
+        </div>
+
+        <!-- Tax Optimization -->
+        <div class="card card-ruby mb-4 pop-in" style="background:linear-gradient(135deg,var(--ruby-bg),var(--citrine-bg));border:2px solid var(--ruby-border);">
+          <div class="font-semibold text-gray-900 dark:text-white mb-2">💸 Tax Optimization (Legal)</div>
+          <p class="text-sm text-gray-700 dark:text-gray-200"><strong>30% flat tax + 1% TDS</strong> on every sale. No loss set-off, no 80C. Strategies:</p>
+          <ul class="space-y-1 text-sm text-gray-700 dark:text-gray-200 mt-2 ml-4 list-disc list-inside">
+            <li><strong>Don't sell — borrow against it.</strong> Use Ledger Live/Aave for tax-free loans, keep upside.</li>
+            <li>Hold >1 year — still 30% but no TDS on wallet transfers.</li>
+            <li>Business income route (complex, need CA) if trading actively.</li>
+            <li>Gift to parents? No — crypto always 30% in their hands too.</li>
+          </ul>
+        </div>
+
+        <!-- Watchouts -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+          <div class="card card-ruby pop-in"><div class="font-semibold mb-1">🚫 Avoid</div><ul class="space-y-1 text-xs text-gray-700 dark:text-gray-200"><li>Foreign exchanges (Binance, Bybit) — illegal under FEMA</li><li>P2P USDT — bank freeze risk</li><li>Leverage/Futures — 95% lose</li><li>Meme coins / "guaranteed returns"</li><li>Sharing seed phrase</li></ul></div>
+          <div class="card card-peridot pop-in"><div class="font-semibold mb-1">🔐 Security</div><ul class="space-y-1 text-xs text-gray-700 dark:text-gray-200"><li>Hardware wallet for >₹50K</li><li>2FA = Authenticator app (not SMS)</li><li>Seed phrase on metal, split locations</li><li>Exchange = on-ramp only</li><li>Test send ₹100 first</li></ul></div>
+          <div class="card card-citrine pop-in"><div class="font-semibold mb-1">⚖️ Tax Reality</div><ul class="space-y-1 text-xs text-gray-700 dark:text-gray-200"><li>30% on gains (Sec 115BBH)</li><li>1% TDS on every sell (Sec 194S)</li><li>No loss set-off ever</li><li>Must declare in ITR (Schedule VDA)</li></ul></div>
+          <div class="card card-ruby pop-in"><div class="font-semibold mb-1">📉 Market Reality</div><ul class="space-y-1 text-xs text-gray-700 dark:text-gray-200"><li>BTC/ETH can drop 50-80% in bear</li><li>High correlation with NASDAQ</li><li>Regulation can change overnight</li><li>Exchange insolvency = total loss</li><li>Past returns ≠ future</li></ul></div>
+        </div>
+
+        <!-- Quick Start -->
+        <div class="card pop-in" style="background:linear-gradient(135deg,var(--ruby-bg),var(--citrine-bg),var(--peridot-bg));border:2px solid var(--ruby-border);">
+          <div class="font-semibold text-gray-900 dark:text-white mb-3">⚡ 15-Minute Quick Start</div>
+          <ol class="space-y-1 text-sm text-gray-700 dark:text-gray-200 list-decimal list-inside">
+            <li>Download <strong>CoinSwitch</strong> (easiest UX) or <strong>CoinDCX</strong> (most coins)</li>
+            <li>Complete eKYC: PAN + Aadhaar OTP + Selfie + Bank (5 mins)</li>
+            <li>Deposit ₹1,000 via UPI → buy <strong>₹500 BTC + ₹500 ETH</strong></li>
+            <li>Set up <strong>weekly auto-SIP</strong> (₹500-2,000) on BTC/ETH</li>
+            <li>Order <strong>Ledger Nano S Plus (₹7,999)</strong> from ledger.com</li>
+            <li>When Ledger arrives: transfer coins → <strong>self-custody</strong></li>
+            <li>Track in <strong>CoinStats / Delta</strong> app (not exchange)</li>
+            <li>File ITR every July with Schedule VDA — sleep peacefully</li>
+          </ol>
+        </div>
+      `;
+    }
+
+    // ============ RENDER HELPERS ============
+    function formatNumber(num, decimals = 2) {
+      if (num === null || num === undefined || isNaN(num)) return '--';
+      return num.toLocaleString('en-IN', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    }
+    function formatChange(change) {
+      if (change === null || change === undefined || isNaN(change)) return '--';
+      const prefix = change >= 0 ? '+' : '';
+      return `${prefix}${formatNumber(change)}`;
+    }
+    function getSignalClass(val, thresh = 0, higher = true) {
+      const pos = higher ? val > thresh : val < thresh;
+      return pos ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700';
+    }
+    function getSignalText(val, thresh = 0, higher = true) {
+      return (higher ? val > thresh : val < thresh) ? 'Bullish ✓' : 'Bearish ✗';
+    }
+
     // ============ CONFIGURATION ============
     const CONFIG = {
       useMockData: false,      // true = force mock; false = live when a key is set, else mock fallback
@@ -2533,7 +2463,7 @@
 
       // Oil price impact (high oil = inflation risk = negative for India)
       const oilPriceInput = parseFloat(document.getElementById('geoOil')?.value);
-      const oilPrice = oilPriceInput || (data.commodities?.oil?.current ?? data.commodities?.oil || 7200);
+      const oilPrice = oilPriceInput || (data.commodities?.oil?.current ?? (data.commodities?.oil ?? 7200));
       if (oilPrice > 8500) f('Oil Price', 'down', `₹${oilPrice.toLocaleString()} — high inflation risk`);
       else if (oilPrice > 7500) f('Oil Price', 'down', `₹${oilPrice.toLocaleString()} — rising`);
       else if (oilPrice > 7000) f('Oil Price', 'flat', `₹${oilPrice.toLocaleString()} — neutral`);
@@ -2541,7 +2471,7 @@
 
       // Gold price (high gold = fear)
       const goldPriceInput = parseFloat(document.getElementById('geoGold')?.value);
-      const goldPrice = goldPriceInput || (data.commodities?.gold?.current ?? data.commodities?.gold || 72500);
+      const goldPrice = goldPriceInput || (data.commodities?.gold?.current ?? (data.commodities?.gold ?? 72500));
       if (goldPrice > 78000) f('Gold Price', 'down', `₹${goldPrice.toLocaleString()}/10g — extreme fear`);
       else if (goldPrice > 75000) f('Gold Price', 'down', `₹${goldPrice.toLocaleString()}/10g — elevated`);
       else f('Gold Price', 'flat', `₹${goldPrice.toLocaleString()}/10g — normal`);
@@ -3151,10 +3081,6 @@
     }
 
     // Auto-render on load
-    document.addEventListener('DOMContentLoaded', () => {
-      renderCryptoExchangesTable();
-      setTimeout(() => fetchCryptoReturns(), 2000);
-    });
 
     async function fetchAllData() {
       const btn = document.getElementById('refreshBtn');
@@ -4069,10 +3995,10 @@
       else if (ga < 0) { score += 1; reasons.push('Global cues slightly down'); }
       if ((data.sgx?.change || 0) < -0.5) { score += 1; reasons.push('Nifty/SGX falling'); }
       if ((data.nse?.declines || 0) > (data.nse?.advances || 0)) { score += 1; reasons.push('Weak breadth'); }
-      const gold = data.commodities?.gold?.current ?? data.commodities?.gold || 72000;
+      const gold = data.commodities?.gold?.current ?? (data.commodities?.gold ?? 72000);
       if (gold > 78000) { score += 1; reasons.push('Gold at extreme high (fear bid)'); }
       else if (gold > 75000) { score += 1; reasons.push('Gold elevated'); }
-      const oil = data.commodities?.oil?.current ?? data.commodities?.oil || 7200;
+      const oil = data.commodities?.oil?.current ?? (data.commodities?.oil ?? 7200);
       if (oil > 7800) { score += 1; reasons.push('Oil spiking (supply fear)'); }
       const lvl = Math.max(1, Math.min(5, 1 + Math.round(score / 2)));
       return { lvl, reasons, score };
@@ -5076,32 +5002,409 @@
       btn.innerHTML = collapsed ? '🗂 Show Steps' : '🗂 Minimize Steps';
     }
 
-    document.addEventListener('DOMContentLoaded', () => {
-      ensureLockOverlays();
-      applyDarkMode(localStorage.getItem('marketAnalyzerDark') === '1' || (!localStorage.getItem('marketAnalyzerDark') && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches));
-      applyDataSourceTips();
-      initCollapsible();
-      renderRiskQuestions();
-      renderMFTable();
-      renderMFPlan();
-      fetchForex();
-      updateGeoOutlook();
-      toggleGeoAuto();
-      renderTopPicks('short');
-      renderPortfolio();
-      renderReitSection();
-      fetchAllData();
-      refreshPersonalWatch(false);
-      checkProStatus(false);
-      const now = new Date();
-      if (now.getHours() === 9 && now.getMinutes() < 15) { setInterval(fetchAllData, 120000); }
+    // ============ FLIPBOOK PAGE HOOKS ============
+    const PAGE_HOOKS = {
+      dashboard: () => { try { updateUI(window.lastMarketData || getStableMockData()); } catch (e) {} },
+      geopolitics: () => { try { toggleGeoAuto(); } catch (e) {} try { updateGeoOutlook(); } catch (e) {} },
+      risk: () => { try { renderRiskQuestions(); } catch (e) {} },
+      momentum: () => { try { renderTopPicks('short'); } catch (e) {} },
+      watchlist: () => { try { refreshPersonalWatch(false); } catch (e) {} },
+      tracker: () => { try { renderPortfolio(); } catch (e) {} },
+      mf: () => { try { renderMFTable(); renderMFPlan(); fetchForex(); } catch (e) {} },
+      reits: () => { try { renderReitSection(); } catch (e) {} },
+      crypto: () => { try { renderCryptoExchangesTable(); } catch (e) {} try { fetchCryptoReturns(); } catch (e) {} }
+    };
+    function runPageHooks(id) {
+      const h = PAGE_HOOKS[id];
+      if (h) setTimeout(h, 30);
+    }
 
-      if (localStorage.getItem('watchAlerts') === 'on') {
-        const btn = document.getElementById('watchAlertBtn');
-        if (btn) { btn.textContent = '🔔 Alerts ON'; btn.className = 'px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700'; }
-      }
+    // Guard geo/watch writers so global refresh never dies on a hidden page
+    const _syncGeoCommodities = syncGeoCommodities;
+    syncGeoCommodities = function (d) { try { _syncGeoCommodities(d); } catch (e) {} };
+    const _updateGeoFromData = updateGeoFromData;
+    updateGeoFromData = function (d) { try { _updateGeoFromData(d); } catch (e) {} };
+    const _refreshPersonalWatch = refreshPersonalWatch;
+    refreshPersonalWatch = function (manual) { try { _refreshPersonalWatch(manual); } catch (e) {} };
 
-      // Restore saved risk profile & answers (refresh keeps your state)
+    // ============ NEW PAGES (inserted before crypto) ============
+    PAGES.splice(7, 0,
+      { id: 'abcd', title: '🧠 ABCD Expert Panel', subtitle: "India's market wizards score your stock", icon: '🧠', theme: 'citrine', render: renderAbcdPage }
+    );
+    const cryptoIdx = PAGES.findIndex(p => p.id === 'crypto');
+    PAGES.splice(cryptoIdx, 0,
+      { id: 'mf', title: '🪙 Mutual Funds & SIP', subtitle: 'Direct plans, expense drag, salary rule', icon: '🪙', theme: 'peridot', render: renderMfPage },
+      { id: 'fees', title: '🧾 Fees & Break-even', subtitle: 'Brokerage, STT, GST — net profit truth', icon: '🧾', theme: 'ruby', render: renderFeesPage },
+      { id: 'reits', title: '🏢 REITs & InvITs', subtitle: 'Income assets without buying land', icon: '🏢', theme: 'peridot', render: renderReitsPage }
+    );
+
+    // ============ PAGE: ABCD EXPERT PANEL ============
+    const ABCD_EXPERTS = [
+      { name: 'Raamdeo Agrawal', lens: 'Growth at reasonable price · market cycles', style: 'growth' },
+      { name: 'Saurabh Mukherjea', lens: 'Coffee Can — consistent compounders', style: 'quality' },
+      { name: 'S. Naren (Sankaran Naren)', lens: 'Contrarian cycles · asset allocation', style: 'contrarian' },
+      { name: 'Porinju Veliyath', lens: 'Small-cap value bargains', style: 'contrarian' },
+      { name: 'Prashant Jain', lens: 'Simple businesses, low leverage, long hold', style: 'quality' },
+      { name: 'Ramesh Damani', lens: 'Moats & wisdom investing', style: 'quality' },
+      { name: 'Samir Arora', lens: 'Growth with global context', style: 'growth' },
+      { name: 'Vinit Sambre', lens: 'Pharma & healthcare specialty', style: 'sector' },
+      { name: 'Hiren Ved', lens: 'Quantamental growth', style: 'growth' },
+      { name: 'Ridham Desai', lens: 'Macro strategy — markets vs economy', style: 'macro' },
+      { name: 'Manish Gunwani', lens: 'Quality at reasonable price; no story stocks', style: 'quality' },
+      { name: 'Akash Prakash', lens: 'Quality large-cap growth (FII view)', style: 'growth' },
+      { name: 'Madhusudan Kela', lens: 'Macro + momentum timing', style: 'momentum' },
+      { name: 'Shyam Sekhar', lens: 'Patient value, fear-based buying', style: 'contrarian' },
+      { name: 'Neelesh Surana', lens: 'Process-driven quality growth', style: 'quality' },
+      { name: 'Nilesh Shah', lens: 'Allocation discipline & macro', style: 'macro' },
+      { name: 'Abhay Agarwal', lens: 'Small/mid-cap value hunting', style: 'contrarian' },
+      { name: 'Vinay Paharia', lens: 'QGLP-style quality', style: 'quality' },
+      { name: 'S. Ranganathan', lens: 'Midcap idea generation', style: 'growth' }
+    ];
+
+    const ABCD_META = {
+      A: { label: 'A — Established Compounder', desc: 'Stable earnings, wide moat, lower drama', cls: 'bg-green-100 text-green-800 border-green-300', bar: 'var(--peridot)' },
+      B: { label: 'B — Growth Engine', desc: 'Growing fast, moderate risk, price matters', cls: 'bg-blue-100 text-blue-800 border-blue-300', bar: '#3b82f6' },
+      C: { label: 'C — Cyclical Play', desc: 'Rides the economy up & down — time it', cls: 'bg-amber-100 text-amber-800 border-amber-300', bar: 'var(--citrine-glow)' },
+      D: { label: 'D — Revival Bet', desc: 'High risk / high reward turnaround', cls: 'bg-rose-100 text-rose-800 border-rose-300', bar: 'var(--ruby)' }
+    };
+
+    function abcdClamp(v, lo = 5, hi = 98) { return Math.max(lo, Math.min(hi, Math.round(v))); }
+
+    function abcdProfile(symbol) {
+      const info = findStock(symbol) || {};
+      const fp = FUNDAMENTAL_PICKS.find(f => f.symbol === symbol);
+      const sector = info.sector || (fp && fp.sector) || 'Diversified';
+      const s = sector.toLowerCase();
+      const isCyc = ['metal', 'mining', 'auto', 'bank', 'cement', 'steel', 'commodity', 'oil', 'gas', 'infra', 'realty', 'psu'].some(k => s.includes(k));
+      const isDef = ['fmcg', 'pharma', 'health', 'it', 'software', 'consumer', 'paint', 'agro', 'fmcd'].some(k => s.includes(k));
+      const r = k => seededRand(symbol.toUpperCase(), k);
+      return {
+        symbol: symbol.toUpperCase(),
+        sector,
+        known: !!(info.symbol || fp),
+        cyclical: abcdClamp(isCyc ? 55 + r('cyc') * 40 : isDef ? 8 + r('cyc') * 25 : 25 + r('cyc') * 35),
+        consistency: abcdClamp((45 + r('cons') * 50) * ((info.basePrice || fp) ? 1.06 : 0.94)),
+        moat: abcdClamp(40 + r('moat') * 55),
+        growth: abcdClamp(35 + r('grow') * 60),
+        innovation: abcdClamp(30 + r('inno') * 65)
+      };
+    }
+
+    function runAbcdPanel() {
+      const symEl = document.getElementById('abcdSymbol');
+      const symbol = (symEl.value || '').toUpperCase().trim();
+      if (!symbol) { alert('Enter a stock symbol (e.g., RELIANCE, TCS, CUPID)'); return; }
+      const p = abcdProfile(symbol);
+      const priceOverride = parseFloat(document.getElementById('abcdPrice').value);
+      let price = priceOverride || currentPriceFor(symbol) || (findStock(symbol) || {}).basePrice || 0;
+      if (!price) { try { price = window.lastMarketData ? price : 0; } catch (e) {} }
+      if (!price) price = 100;
+      const book = parseFloat(document.getElementById('abcdBook').value);
+      const pb = book > 0 ? price / book : null;
+
+      const anchor = (findStock(symbol) || {}).basePrice || price;
+      const qualityMult = 0.85 + (p.consistency / 100) * 0.25 + (p.moat / 100) * 0.2;
+      const fair = anchor * qualityMult;
+      const mos = ((fair - price) / fair) * 100;
+
+      let cat;
+      if (p.consistency < 48 && mos >= 15) cat = 'D';
+      else if (p.cyclical >= 58) cat = 'C';
+      else if (p.consistency >= 66 && p.moat >= 60 && p.cyclical <= 48) cat = 'A';
+      else cat = 'B';
+
+      const momo = anchor ? ((price / anchor) - 1) * 100 : 0;
+      const breadthBull = (() => { try { const d = window.lastMarketData || getStableMockData(); return d.nse.advances > d.nse.declines; } catch (e) { return true; } })();
+
+      const verdicts = ABCD_EXPERTS.map(ex => {
+        let v, reason;
+        switch (ex.style) {
+          case 'quality': {
+            const q = p.consistency * 0.5 + p.moat * 0.5;
+            v = q >= 62 ? 'BUY' : q >= 48 ? 'HOLD' : 'AVOID';
+            reason = `Earnings consistency ${p.consistency}/100, moat ${p.moat}/100${v === 'BUY' ? ' — compounder material' : v === 'HOLD' ? ' — watch, don\'t chase' : ' — too fragile for a core hold'}`;
+            break;
+          }
+          case 'growth': {
+            const g = p.growth * 0.6 + p.innovation * 0.25 + p.moat * 0.15;
+            v = g >= 62 && mos > -18 ? 'BUY' : g >= 48 ? 'HOLD' : 'AVOID';
+            reason = `Growth ${p.growth}, innovation ${p.innovation}${mos < -18 ? ', but valuation stretched — pay-up risk' : v === 'BUY' ? ' — pay a fair price, not any price' : ''}`;
+            break;
+          }
+          case 'contrarian': {
+            v = mos >= 10 ? 'BUY' : mos >= -5 ? 'HOLD' : 'AVOID';
+            reason = `${mos >= 0 ? `${mos.toFixed(0)}% below assessed fair value` : `${(-mos).toFixed(0)}% above fair value`} — ${mos >= 10 ? 'fear in the name is the opportunity' : mos >= -5 ? 'no margin of safety yet' : 'crowd is paying a premium'}`;
+            break;
+          }
+          case 'momentum': {
+            v = momo > 2 ? 'BUY' : momo > -8 ? 'HOLD' : 'AVOID';
+            reason = `Trading ${momo >= 0 ? '+' : ''}${momo.toFixed(1)}% vs reference — trend ${momo > 2 ? 'intact, ride it with a stop' : momo > -8 ? 'flat, wait for a trigger' : 'broken, step aside'}`;
+            break;
+          }
+          case 'macro': {
+            v = breadthBull ? 'HOLD' : 'AVOID';
+            reason = breadthBull ? 'Breadth positive — fine to hold quality through macro noise' : 'Weak breadth — markets can diverge from the economy; stay light';
+            break;
+          }
+          case 'sector': {
+            const ph = p.sector.toLowerCase().includes('pharma') || p.sector.toLowerCase().includes('health');
+            v = ph ? (mos > -10 ? 'BUY' : 'HOLD') : 'HOLD';
+            reason = ph ? 'Healthcare tailwinds + US generics recovery — specialty sweet spot' : `Outside my circle (${p.sector}) — competent holders may disagree`;
+            break;
+          }
+        }
+        const cls = v === 'BUY' ? 'bg-green-100 text-green-700' : v === 'HOLD' ? 'bg-blue-100 text-blue-700' : 'bg-red-100 text-red-700';
+        return { ...ex, verdict: v, cls, reason };
+      });
+
+      const buys = verdicts.filter(v => v.verdict === 'BUY').length;
+      const holds = verdicts.filter(v => v.verdict === 'HOLD').length;
+      const avoids = verdicts.filter(v => v.verdict === 'AVOID').length;
+      const action = buys >= holds && buys >= avoids ? 'BUY' : avoids > buys && avoids >= holds ? 'AVOID' : 'HOLD';
+      const confidence = Math.round(Math.max(buys, holds, avoids) / verdicts.length * 100);
+
+      const adviceText = {
+        A: 'Core compounder — buy on dips via SIP, review yearly, hold 5+ years. This is where long-term wealth is quietly built.',
+        B: 'Growth position — size it moderately (≤10% per stock), review quarterly. Great returns demand the growth actually lands.',
+        C: 'Cycle trade — accumulate near cycle lows (weak PMI, cheap multiples), book profits into strength. Do NOT buy at peak euphoria.',
+        D: 'Satellite bet only (≤5% of portfolio) — deep value/turnaround needs patience and a wide stop-loss. Expect volatility; position small.'
+      }[cat];
+
+      const wealthNote = `Long-term view: as Raamdeo Agrawal puts it, over decades markets track GDP → corporate earnings → stock prices, with innovation leaders outperforming the pack. A "${cat}" rating here means this stock ${cat === 'A' || cat === 'B' ? 'can ride that compounding wave if earnings delivery continues' : cat === 'C' ? 'will swing with the economic cycle — useful, but never a permanent core holding' : 'is a calculated gamble on revival, not a wealth-compounding engine'}. Ridham Desai's caution applies: markets can diverge from the economy for years in between — size positions so you survive the divergence.`;
+
+      const pbNote = pb !== null
+        ? (pb < 1.5 ? `P/B ${pb.toFixed(2)} — trading below 1.5× book: classic value-camp bargain territory (Porinju/Naren would lean in).`
+          : pb > 6 ? `P/B ${pb.toFixed(2)} — investors are paying a big premium to book; only justified by high ROCE + durable moat (check both above).`
+            : `P/B ${pb.toFixed(2)} — reasonable middle zone; market value vs book value shows neither deep discount nor obvious froth.`)
+        : `Add book value/share to see the Market Value vs Book Value gap — Raamdeo's shortcut for spotting underpriced businesses.`;
+
+      const dim = (label, val, color) => `
+        <div>
+          <div class="flex justify-between text-xs mb-1"><span class="text-gray-600">${label}</span><span class="font-bold">${val}</span></div>
+          <div class="range-bar" style="background:var(--mist);"><div style="height:7px;border-radius:4px;width:${val}%;background:${color};"></div></div>
+        </div>`;
+
+      document.getElementById('abcdResult').innerHTML = `
+        <div class="card mb-4 pop-in" style="border-left:4px solid ${ABCD_META[cat].bar};">
+          <div class="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <span class="badge ${cat === 'A' ? 'badge-peridot' : cat === 'D' ? 'badge-ruby' : 'badge-citrine'}">Category ${ABCD_META[cat].label}</span>
+              <div class="font-black text-xl mt-2 text-gray-900 dark:text-white">${p.symbol} <span class="text-sm font-medium text-gray-500">· ${p.sector}${p.known ? '' : ' · (profile estimated — not in tracked universe)'}</span></div>
+              <div class="text-sm text-gray-600 dark:text-gray-300 mt-1">${ABCD_META[cat].desc}</div>
+            </div>
+            <div class="text-center">
+              <div class="text-3xl font-black" style="color:${action === 'BUY' ? 'var(--peridot)' : action === 'AVOID' ? 'var(--ruby)' : 'var(--citrine-glow)'};">${action}</div>
+              <div class="text-[10px] uppercase tracking-wider text-gray-500">${confidence}% panel agreement</div>
+            </div>
+          </div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-4">
+            <div class="metric"><div class="metric-value">₹${formatNumber(price)}</div><div class="metric-label">Price used</div></div>
+            <div class="metric"><div class="metric-value">₹${formatNumber(fair)}</div><div class="metric-label">Assessed fair value</div></div>
+            <div class="metric"><div class="metric-value" style="color:${mos >= 0 ? 'var(--peridot)' : 'var(--ruby)'};">${mos >= 0 ? '+' : ''}${mos.toFixed(0)}%</div><div class="metric-label">Margin of safety</div></div>
+            <div class="metric"><div class="metric-value">${buys}<span class="text-sm text-gray-400">/${verdicts.length}</span></div><div class="metric-label">Experts say BUY</div></div>
+          </div>
+        </div>
+
+        <div class="card card-ruby mb-4 pop-in">
+          <div class="font-semibold text-gray-900 dark:text-white mb-3">📊 Score Card</div>
+          <div class="space-y-2.5">
+            ${dim('Earnings Consistency (Mukherjea/Jain)', p.consistency, 'var(--peridot)')}
+            ${dim('Competitive Moat (Damani/Paharia)', p.moat, 'var(--citrine-glow)')}
+            ${dim('Growth Profile (Arora/Ved)', p.growth, '#3b82f6')}
+            ${dim('Innovation Edge (Raamdeo)', p.innovation, 'var(--ruby-light)')}
+            ${dim('Cyclicality (higher = more cycle-dependent)', p.cyclical, 'var(--citrine)')}
+          </div>
+          <div class="mt-3 p-3 rounded-lg text-xs ${pb !== null ? (pb < 1.5 ? 'bg-green-50 text-green-900' : pb > 6 ? 'bg-red-50 text-red-900' : 'bg-gray-50 text-gray-700') : 'bg-gray-50 text-gray-700'}">${pbNote}</div>
+        </div>
+
+        <div class="card card-peridot mb-4 pop-in">
+          <div class="font-semibold text-gray-900 dark:text-white mb-3">🧠 The Panel Speaks — ${ABCD_EXPERTS.length} Investing Legends</div>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2">
+            ${verdicts.map(v => `
+              <div class="p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="font-semibold text-sm text-gray-900 dark:text-white">${v.name}</span>
+                  <span class="pill ${v.cls}" style="padding:2px 10px;border-radius:9999px;font-size:10px;font-weight:800;">${v.verdict}</span>
+                </div>
+                <div class="text-[11px] text-gray-500 italic mt-0.5">${v.lens}</div>
+                <div class="text-xs text-gray-600 dark:text-gray-300 mt-1">${v.reason}</div>
+              </div>`).join('')}
+          </div>
+        </div>
+
+        <div class="card mb-4 pop-in" style="background:linear-gradient(135deg,var(--citrine-bg),var(--peridot-bg));border:2px solid var(--citrine-border);">
+          <div class="font-semibold text-gray-900 dark:text-white mb-1">🎯 Actionable Advice</div>
+          <p class="text-sm text-gray-700 dark:text-gray-200">${adviceText} Panel tally: <strong>${buys} BUY · ${holds} HOLD · ${avoids} AVOID</strong>.</p>
+          <div class="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+            <div class="font-semibold text-gray-900 dark:text-white mb-1">🌱 Alignment With Long-Term Wealth Creation</div>
+            <p class="text-sm text-gray-700 dark:text-gray-200">${wealthNote}</p>
+          </div>
+        </div>`;
+    }
+
+    function askAbcdFromPortfolio() {
+      const sym = (document.getElementById('portfolioSymbol').value || '').toUpperCase().trim();
+      const idx = PAGES.findIndex(p => p.id === 'abcd');
+      goToPage(idx);
+      setTimeout(() => {
+        const el = document.getElementById('abcdSymbol');
+        if (el && sym) el.value = sym;
+        if (sym) runAbcdPanel();
+      }, 450);
+    }
+
+    function renderAbcdPage() {
+      return `
+        <div class="page-header" style="color:var(--citrine);">
+          <div class="page-title">🧠 ABCD Expert Panel</div>
+          <div class="page-subtitle">${ABCD_EXPERTS.length} Indian market wizards grade your stock A/B/C/D — value, contrarian & innovation lenses</div>
+        </div>
+        <div class="card card-citrine mb-4 pop-in">
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
+            <div><label class="text-xs font-medium text-gray-600">Stock Symbol</label><input type="text" id="abcdSymbol" placeholder="RELIANCE, TCS, CUPID…" class="w-full mt-1" style="text-transform:uppercase;"></div>
+            <div><label class="text-xs font-medium text-gray-600">Current Price ₹ (optional)</label><input type="number" id="abcdPrice" placeholder="auto-fetch" class="w-full mt-1" step="0.01" min="0"></div>
+            <div><label class="text-xs font-medium text-gray-600">Book Value /share ₹ (optional)</label><input type="number" id="abcdBook" placeholder="for P/B check" class="w-full mt-1" step="0.01" min="0"></div>
+          </div>
+          <button onclick="runAbcdPanel()" class="top-btn citrine w-full sm:w-auto">⚖️ Convene The Panel</button>
+        </div>
+        <div id="abcdResult"></div>
+        <div class="card card-peridot pop-in">
+          <div class="font-semibold text-gray-900 dark:text-white mb-2">How the ABCD grading works</div>
+          <ul class="space-y-1.5 text-xs text-gray-700 dark:text-gray-200">
+            <li><strong>A — Established:</strong> consistent earnings + wide moat + low cyclicality. Compounder core (Mukherjea's Coffee Can, Jain's simple businesses).</li>
+            <li><strong>B — Growth:</strong> strong growth/innovation, moderate risk. Buy at reasonable price (Raamdeo's Coffee Can entry rule, Arora/Ved).</li>
+            <li><strong>C — Cyclical:</strong> fortunes track the economy/commodity cycle (metals, autos, banks). Naren-style: buy out-of-favour, exit into euphoria.</li>
+            <li><strong>D — Revival:</strong> broken or beaten-down story with deep value. Porinju/Shyam Sekhar territory — small size, wide stop, patient.</li>
+          </ul>
+        </div>`;
+    }
+
+    // ============ PAGE: MUTUAL FUNDS & SIP ============
+    function renderMfPage() {
+      return `
+        <div class="page-header" style="color:var(--peridot);">
+          <div class="page-title">🪙 Mutual Funds & SIP Planner</div>
+          <div class="page-subtitle">Direct plans · real cost drag · salary-based sizing</div>
+        </div>
+        <div class="card card-peridot mb-4 pop-in">
+          <div class="font-semibold text-gray-900 dark:text-white mb-3">Fund Shortlist (direct plans)</div>
+          <div class="overflow-x-auto">
+            <table><thead><tr><th>Fund</th><th>Category</th><th>TER</th><th>Min SIP</th></tr></thead><tbody id="mfTableBody"></tbody></table>
+          </div>
+        </div>
+        <div class="card card-citrine mb-4 pop-in">
+          <div class="font-semibold text-gray-900 dark:text-white mb-3">Expense Ratio Drag</div>
+          <div class="flex flex-wrap items-center gap-3 mb-3">
+            <label class="text-sm">Amount ₹</label><input type="number" id="mfAmount" value="10000" min="500" class="w-32" oninput="renderMFFees()">
+            <label class="text-sm ml-2">Type</label>
+            <select id="mfType" onchange="renderMFFees()" class="px-3 py-2"><option value="equity">Equity</option><option value="debt">Debt</option></select>
+          </div>
+          <div id="mfFees"></div>
+        </div>
+        <div class="card card-ruby pop-in">
+          <div class="font-semibold text-gray-900 dark:text-white mb-3">SIP Sizer</div>
+          <select id="mfPlanMode" onchange="renderMFPlan()" class="mb-3 px-3 py-2">
+            <option value="lumpsum">I have a lumpsum</option>
+            <option value="salary">I save % of salary</option>
+          </select>
+          <div id="mfLumpBox" class="flex flex-wrap items-center gap-3 mb-3">
+            <label class="text-sm">Lumpsum ₹</label><input type="number" id="mfLump" value="100000" min="500" class="w-40" oninput="renderMFPlan()">
+          </div>
+          <div id="mfSalaryBox" class="hidden">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+              <div><label class="text-xs text-gray-600">Monthly salary ₹</label><input type="number" id="mfSalary" value="100000" class="w-full mt-1" oninput="renderMFPlan()"></div>
+              <div><label class="text-xs text-gray-600">Currency</label><select id="mfSalaryCur" onchange="fetchForex();renderMFPlan()" class="w-full mt-1"><option value="INR">INR ₹</option><option value="USD">USD $</option><option value="AED">AED د.إ</option><option value="GBP">GBP £</option><option value="EUR">EUR €</option><option value="SGD">SGD S$</option></select></div>
+              <div><label class="text-xs text-gray-600">Forex rate</label><input type="number" id="mfForex" value="1" step="0.01" class="w-full mt-1" oninput="renderMFPlan()"><span id="mfFxStatus" class="text-[10px] text-gray-400"></span></div>
+              <div><label class="text-xs text-gray-600">Save % of salary</label><input type="number" id="mfRulePct" value="15" min="1" max="90" class="w-full mt-1" oninput="renderMFPlan()"></div>
+            </div>
+          </div>
+          <div id="mfPlan"></div>
+        </div>`;
+    }
+
+    // ============ PAGE: FEES & BREAK-EVEN ============
+    function renderFeesPage() {
+      return `
+        <div class="page-header" style="color:var(--ruby);">
+          <div class="page-title">🧾 Fees & Break-even Calculator</div>
+          <div class="page-subtitle">Every rupee of charge between buy & sell — across brokers</div>
+        </div>
+        <div class="card card-ruby mb-4 pop-in">
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+            <div><label class="text-xs text-gray-600">Mode</label><select id="feeMode" class="w-full mt-1"><option value="delivery">Delivery</option><option value="intraday">Intraday</option></select></div>
+            <div><label class="text-xs text-gray-600">Buy ₹</label><input type="number" id="feeBuy" placeholder="100" class="w-full mt-1" min="0" step="0.01"></div>
+            <div><label class="text-xs text-gray-600">Qty</label><input type="number" id="feeQty" placeholder="10" class="w-full mt-1" min="1"></div>
+            <div><label class="text-xs text-gray-600">Sell ₹</label><input type="number" id="feeSell" placeholder="105" class="w-full mt-1" min="0" step="0.01"></div>
+          </div>
+          <div class="flex flex-wrap items-end gap-3 mb-3">
+            <div><label class="text-xs text-gray-600">Broker</label>
+              <select id="feeBroker" onchange="onFeeBrokerChange()" class="px-3 py-2 mt-1">
+                <option value="zerodha">Zerodha</option><option value="groww" selected>Groww</option><option value="dhan">Dhan</option>
+                <option value="upstox">Upstox</option><option value="angel">Angel One</option><option value="icici">ICICI Direct</option>
+                <option value="hdfc">HDFC Securities</option><option value="custom">Custom %</option>
+              </select>
+            </div>
+            <div id="feeCustomRow" class="hidden flex-wrap items-end gap-3">
+              <div><label class="text-xs text-gray-600">Delivery %</label><input type="number" id="feeDelPct" value="0.1" step="0.01" class="w-24 mt-1"></div>
+              <div><label class="text-xs text-gray-600">Intraday %</label><input type="number" id="feeIntraPct" value="0.03" step="0.01" class="w-24 mt-1"></div>
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <button onclick="calcFees()" class="top-btn ruby">Calculate Net Profit</button>
+            <div class="flex items-center gap-2">
+              <input type="number" id="feeTargetPct" value="2" step="0.5" min="0" class="w-20" aria-label="Target net %">
+              <button onclick="findFeeTarget()" class="top-btn citrine">Sell price for target net %</button>
+            </div>
+          </div>
+        </div>
+        <div id="feeResult"></div>`;
+    }
+
+    // ============ PAGE: REITS & INVITS ============
+    function renderReitsPage() {
+      return `
+        <div class="page-header" style="color:var(--peridot);">
+          <div class="page-title">🏢 REITs & InvITs</div>
+          <div class="page-subtitle">Office parks, malls, roads, power grids — income without buying land</div>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <div id="reitCatChips" class="flex flex-wrap gap-2"></div>
+          <button onclick="refreshReitPrices()" class="top-btn peridot ml-auto">🔄 Live Prices</button>
+          <span id="reitPriceStatus" class="text-xs text-gray-500"></span>
+        </div>
+        <div id="reitCardsWrap" class="grid grid-cols-1 md:grid-cols-2 gap-3"></div>
+        <div class="text-[11px] text-gray-500 mt-3">*Distribution yield = last declared distributions annualised ÷ unit price. REIT/InvIT units trade like stocks on NSE — demat required, ₹10k+ is enough to start. Interest income portion is taxed at slab; better as a 5-10% income sleeve, not a core holding.</div>`;
+    }
+
+    // ============ QUICK ACTION MENU ============
+    function openQuickActionMenu() {
+      const quick = [
+        { icon: '↻', label: 'Refresh live data', fn: () => fetchAllData() },
+        { icon: '📊', label: 'Dashboard', page: 'dashboard' },
+        { icon: '🌍', label: 'Geopolitics driver', page: 'geopolitics' },
+        { icon: '🧠', label: 'ABCD Expert Panel', page: 'abcd' },
+        { icon: '📈', label: 'Position Analyzer', page: 'portfolio' },
+        { icon: '📋', label: 'Portfolio Tracker', page: 'tracker' },
+        { icon: '🪙', label: 'Crypto Guide', page: 'crypto' }
+      ];
+      const c = document.getElementById('modalsContainer');
+      c.innerHTML = `
+        <div class="modal-overlay" onclick="if(event.target===this)this.remove()">
+          <div class="modal">
+            <div class="modal-header"><div class="modal-title">⚡ Quick Actions</div><button class="modal-close" onclick="this.closest('.modal-overlay').remove()">×</button></div>
+            <div class="modal-body space-y-2">
+              ${quick.map(q => `
+                <button class="w-full text-left px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-3 font-medium text-gray-800 dark:text-gray-100"
+                  onclick="document.getElementById('modalsContainer').innerHTML='';${q.page ? `goToPage(PAGES.findIndex(p=>p.id==='${q.page}'))` : q.fn.name + '()'}">
+                  <span class="text-lg">${q.icon}</span>${q.label}
+                </button>`).join('')}
+            </div>
+          </div>
+        </div>`;
+    }
+
+    // ============ RISK STATE RESTORE ============
+    function restoreRiskState() {
       try {
         const saved = JSON.parse(localStorage.getItem('marketAnalyzerRisk'));
         if (saved && saved.selections) {
@@ -5117,19 +5420,36 @@
           calculateRiskProfile(false);
         }
       } catch (e) {}
+    }
 
-      // PWA install prompt
-      let deferredPrompt;
-      window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); deferredPrompt = e; });
+    // ============ UNIFIED BOOT (runs after flipbook boot) ============
+    document.addEventListener('DOMContentLoaded', () => {
+      try { applyDarkMode(localStorage.getItem('marketAnalyzerDark') === '1' || (!localStorage.getItem('marketAnalyzerDark') && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)); } catch (e) {}
+      try { applyDataSourceTips(); } catch (e) {}
+      try { ensureLockOverlays(); } catch (e) {}
+      try { checkProStatus(false); } catch (e) {}
 
-      // PWA shortcuts: handle ?refresh=1 and ?portfolio=1 from manifest shortcuts
-      const params = new URLSearchParams(location.search);
-      if (params.get('refresh')) { fetchAllData(); }
-      if (params.get('portfolio')) {
-        document.getElementById('step3').scrollIntoView({ behavior: 'smooth', block: 'start' });
-        const sym = document.getElementById('portfolioSymbol');
-        if (sym && !sym.value) sym.focus();
+      // Pre-render every page once so all element IDs exist for live updates
+      for (let i = 0; i < PAGES.length; i++) { try { renderPage(i); } catch (e) {} }
+      currentPage = 0;
+      updateNavigation();
+
+      try { fetchAllData(); } catch (e) {}
+      try { restoreRiskState(); } catch (e) {}
+
+      if (localStorage.getItem('watchAlerts') === 'on') {
+        const btn = document.getElementById('watchAlertBtn');
+        if (btn) { btn.textContent = '🔔 Alerts ON'; btn.className = 'px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700'; }
       }
+
+      window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); });
+
+      const params = new URLSearchParams(location.search);
+      if (params.get('portfolio')) {
+        const idx = PAGES.findIndex(p => p.id === 'portfolio');
+        if (idx > 0) setTimeout(() => goToPage(idx), 500);
+      }
+      if (params.get('refresh')) { try { fetchAllData(); } catch (e) {} }
     });
   </script>
 </body>
