@@ -673,6 +673,7 @@
 
     async function shareCurrentPage() {
       const page = PAGES[currentPage] || PAGES[0];
+      if (page.id === 'contents') return shareApp();
       syncUrlPage(page.id);
       const url = location.href.startsWith('http') && !location.hostname.includes('localhost')
         ? location.href
@@ -681,6 +682,20 @@
         try { await navigator.share({ title: `${page.title} — Pre-Market Analyzer`, text: page.subtitle, url }); return; } catch (e) { return; }
       }
       try { await navigator.clipboard.writeText(url); showToast('🔗 Link copied — ready to paste anywhere'); }
+      catch (e) { prompt('Copy this shareable link:', url); }
+    }
+
+    async function shareApp() {
+      const url = 'https://premarket-analyzer.pages.dev';
+      const payload = {
+        title: 'Pre-Market Analyzer™ — Your Daily Wealth Compass',
+        text: 'Live market cues, ABCD expert panel (19 Indian market wizards), portfolio tools & more. Free.',
+        url
+      };
+      if (navigator.share) {
+        try { await navigator.share(payload); return; } catch (e) { return; }
+      }
+      try { await navigator.clipboard.writeText(url); showToast('🔗 App link copied — send it to anyone'); }
       catch (e) { prompt('Copy this shareable link:', url); }
     }
 
@@ -5498,6 +5513,7 @@
         { icon: '📖', label: 'Table of Contents', page: 'contents' },
         { icon: '↻', label: 'Refresh live data', call: 'fetchAllData' },
         { icon: '🔗', label: 'Share this page', call: 'shareCurrentPage' },
+        { icon: '🌐', label: 'Share entire app', call: 'shareApp' },
         { icon: '📊', label: 'Dashboard', page: 'dashboard' },
         { icon: '🌍', label: 'Geopolitics driver', page: 'geopolitics' },
         { icon: '🧠', label: 'ABCD Expert Panel', page: 'abcd' },
