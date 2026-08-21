@@ -43,9 +43,14 @@
       --obsidian: #0f172a;
       --pearl: #fafafa;
       --mist: #f1f5f9;
+
+      /* Text-safe variants: darker on light bg, original glow in dark mode */
+      --ruby-text: #be185d;
+      --citrine-text: #a16207;
+      --peridot-text: #4d7c0f;
     }
-    
-    .dark { color-scheme: dark; }
+
+    .dark { color-scheme: dark; --ruby-text: var(--ruby-light); --citrine-text: var(--citrine-glow); --peridot-text: var(--peridot-glow); }
     .dark body { background: linear-gradient(145deg, #0c0a09 0%, #1a1612 50%, #0f0d0a 100%); }
     
     /* ===== FLIPBOOK ENGINE ===== */
@@ -759,7 +764,7 @@
     // ============ PAGE RENDERERS ============
     function renderDashboard() {
       return `
-        <div class="page-header" style="color:var(--ruby);">
+        <div class="page-header" style="color:var(--ruby-text);">
           <div class="page-title">📊 Pre-Market Dashboard</div>
           <div class="page-subtitle">Live global cues → today's directional bias</div>
         </div>
@@ -821,7 +826,7 @@
 
     function renderGeopolitics() {
       return `
-        <div class="page-header" style="color:var(--ruby);">
+        <div class="page-header" style="color:var(--ruby-text);">
           <div class="page-title">${PAGES[1].icon} Geopolitics, War & Metals</div>
           <div class="page-subtitle">Market direction driver — risk-off vs risk-on</div>
         </div>
@@ -873,7 +878,7 @@
     function renderRiskProfile() {
       // Risk questions rendered by JS
       return `
-        <div class="page-header" style="color:var(--peridot);">
+        <div class="page-header" style="color:var(--peridot-text);">
           <div class="page-title">${PAGES[2].icon} Know Your Risk Profile</div>
           <div class="page-subtitle">6 questions → your investor DNA</div>
         </div>
@@ -887,7 +892,7 @@
 
     function renderAllocation() {
       return `
-        <div class="page-header" style="color:var(--citrine);">
+        <div class="page-header" style="color:var(--citrine-text);">
           <div class="page-title">${PAGES[3].icon} Your Asset Allocation</div>
           <div class="page-subtitle">Diversification across growth, income, hedge & liquidity</div>
         </div>
@@ -899,7 +904,7 @@
 
     function renderMomentumPage() {
       return `
-        <div class="page-header" style="color:var(--ruby);">
+        <div class="page-header" style="color:var(--ruby-text);">
           <div class="page-title">${PAGES[4].icon} Momentum Screener</div>
           <div class="page-subtitle">RSI · MACD · Beta from live prices</div>
         </div>
@@ -941,7 +946,7 @@
 
     function renderWatchlist() {
       return `
-        <div class="page-header" style="color:var(--peridot);">
+        <div class="page-header" style="color:var(--peridot-text);">
           <div class="page-title">${PAGES[5].icon} Personal Watchlist</div>
           <div class="page-subtitle">Private overbought alerts — stored in your browser</div>
         </div>
@@ -958,7 +963,7 @@
 
     function renderPositionAnalyzer() {
       return `
-        <div class="page-header" style="color:var(--citrine);">
+        <div class="page-header" style="color:var(--citrine-text);">
           <div class="page-title">${PAGES[6].icon} Position Analyzer</div>
           <div class="page-subtitle">Live price → Buy / Hold / Sell / Book Profit</div>
         </div>
@@ -982,7 +987,7 @@
 
     function renderGoals() {
       return `
-        <div class="page-header" style="color:var(--peridot);">
+        <div class="page-header" style="color:var(--peridot-text);">
           <div class="page-title">${PAGES[7].icon} Goal Planner</div>
           <div class="page-subtitle">SIP math, rebalance alerts, concentration risk</div>
         </div>
@@ -1015,7 +1020,7 @@
 
     function renderCapital() {
       return `
-        <div class="page-header" style="color:var(--citrine);">
+        <div class="page-header" style="color:var(--citrine-text);">
           <div class="page-title">${PAGES[8].icon} Capital-Based Portfolio Builder</div>
           <div class="page-subtitle">Monthly amount → exact quantities & SIPs</div>
         </div>
@@ -1031,7 +1036,7 @@
 
     function renderIntraday() {
       return `
-        <div class="page-header" style="color:var(--ruby);">
+        <div class="page-header" style="color:var(--ruby-text);">
           <div class="page-title">${PAGES[9].icon} Intraday Live Sell Monitor</div>
           <div class="page-subtitle">Live exit signals — SL, target, RSI, momentum, time</div>
         </div>
@@ -1051,7 +1056,7 @@
 
     function renderTracker() {
       return `
-        <div class="page-header" style="color:var(--peridot);">
+        <div class="page-header" style="color:var(--peridot-text);">
           <div class="page-title">${PAGES[10].icon} Portfolio Tracker</div>
           <div class="page-subtitle">Holdings → live P&L → sell plan with dates</div>
         </div>
@@ -1072,7 +1077,7 @@
 
     function renderCrypto() {
       return `
-        <div class="page-header" style="color:var(--citrine);">
+        <div class="page-header" style="color:var(--citrine-text);">
           <div class="page-title">${PAGES[11].icon} Cryptocurrency — India Guide</div>
           <div class="page-subtitle">Regulated exchanges • KYC • Live returns • Tax strategy • 15-min start</div>
         </div>
@@ -5069,7 +5074,7 @@
       const chapters = PAGES.map((p, i) => ({ ...p, n: i })).slice(1);
       return `
         <div class="text-center mb-5 pop-in">
-          <div style="font-size:0.62rem;font-weight:800;letter-spacing:0.28em;color:var(--ruby);text-transform:uppercase;">Pre-Market Analyzer™</div>
+          <div style="font-size:0.62rem;font-weight:800;letter-spacing:0.28em;color:var(--ruby-text);text-transform:uppercase;">Pre-Market Analyzer™</div>
           <h1 class="text-3xl font-black text-gray-900 dark:text-white mt-2" style="line-height:1.12;">Your Daily<br>Wealth Compass</h1>
           <p class="text-xs text-gray-500 mt-2">${new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${chapters.length} chapters · tap any card</p>
         </div>
@@ -5391,7 +5396,7 @@
 
     function renderAbcdPage() {
       return `
-        <div class="page-header" style="color:var(--citrine);">
+        <div class="page-header" style="color:var(--citrine-text);">
           <div class="page-title">🧠 ABCD Expert Panel</div>
           <div class="page-subtitle">${ABCD_EXPERTS.length} Indian market wizards grade your stock A/B/C/D — value, contrarian & innovation lenses</div>
         </div>
@@ -5483,7 +5488,7 @@
     // ============ PAGE: MUTUAL FUNDS & SIP ============
     function renderMfPage() {
       return `
-        <div class="page-header" style="color:var(--peridot);">
+        <div class="page-header" style="color:var(--peridot-text);">
           <div class="page-title">🪙 Mutual Funds & SIP Planner</div>
           <div class="page-subtitle">Direct plans · real cost drag · salary-based sizing</div>
         </div>
@@ -5526,7 +5531,7 @@
     // ============ PAGE: FEES & BREAK-EVEN ============
     function renderFeesPage() {
       return `
-        <div class="page-header" style="color:var(--ruby);">
+        <div class="page-header" style="color:var(--ruby-text);">
           <div class="page-title">🧾 Fees & Break-even Calculator</div>
           <div class="page-subtitle">Every rupee of charge between buy & sell — across brokers</div>
         </div>
@@ -5564,7 +5569,7 @@
     // ============ PAGE: REITS & INVITS ============
     function renderReitsPage() {
       return `
-        <div class="page-header" style="color:var(--peridot);">
+        <div class="page-header" style="color:var(--peridot-text);">
           <div class="page-title">🏢 REITs & InvITs</div>
           <div class="page-subtitle">Office parks, malls, roads, power grids — income without buying land</div>
         </div>
