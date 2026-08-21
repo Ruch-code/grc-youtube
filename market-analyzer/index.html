@@ -52,6 +52,41 @@
 
     .dark { color-scheme: dark; --ruby-text: var(--ruby-light); --citrine-text: var(--citrine-glow); --peridot-text: var(--peridot-glow); }
     .dark body { background: linear-gradient(145deg, #0c0a09 0%, #1a1612 50%, #0f0d0a 100%); }
+
+    /* ===== ENCHANTED NIGHT — glow-in-the-dark magic layer ===== */
+    .magic-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; display: none; overflow: hidden; }
+    .dark .magic-layer { display: block; }
+    body.magic-off .magic-layer { display: none !important; }
+
+    .firefly {
+      position: absolute; border-radius: 50%;
+      background: radial-gradient(circle, #fff8d0 0%, #ffe66d 45%, rgba(255,223,0,0) 72%);
+      box-shadow: 0 0 8px 2px rgba(255,230,109,.85), 0 0 22px 7px rgba(245,197,66,.32);
+      opacity: 0;
+      animation: ffDrift var(--dur,14s) ease-in-out var(--delay,0s) infinite alternate,
+                 ffBlink calc(var(--dur,14s)/3.2) ease-in-out infinite;
+      will-change: transform, opacity;
+    }
+    @keyframes ffDrift { from { transform: translate(0,0); } to { transform: translate(var(--dx,60px), var(--dy,-50px)); } }
+    @keyframes ffBlink { 0%,100% { opacity:.12; } 45% { opacity:var(--peak,.95); } 60% { opacity:.35; } }
+
+    .dragon-fly { position: absolute; top: var(--top, 18%); left: -280px; animation: dragonCross var(--ddur,55s) linear var(--ddelay,0s) infinite; will-change: transform; }
+    .dragon-body { animation: dragonBob 5.5s ease-in-out infinite; opacity:.94;
+      filter: drop-shadow(0 0 9px rgba(228,208,10,.85)) drop-shadow(0 0 28px rgba(228,208,10,.4)) drop-shadow(0 0 60px rgba(224,17,95,.18)); }
+    .dragon-fly .wingNear { transform-origin: 106px 58px; animation: wingFlap 1.5s ease-in-out infinite; }
+    .dragon-fly .wingFar  { transform-origin: 120px 56px; animation: wingFlap 1.5s ease-in-out .12s infinite; }
+    @keyframes dragonCross { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 580px)); } }
+    @keyframes dragonBob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-26px) rotate(2.5deg); } }
+    @keyframes wingFlap { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-13deg); } }
+
+    /* dark-mode glow boosts */
+    .dark .page-header { animation: headerGlow 4.5s ease-in-out infinite; }
+    @keyframes headerGlow {
+      0%,100% { text-shadow: 0 0 14px rgba(255,255,255,.10), 0 0 34px currentColor; }
+      50%     { text-shadow: 0 0 20px rgba(255,255,255,.20), 0 0 52px currentColor; }
+    }
+    .dark .card { box-shadow: 0 8px 30px rgba(0,0,0,.35), 0 0 24px rgba(228,208,10,.05), inset 0 0 46px rgba(228,208,10,.02); border-color: rgba(228,208,10,.15); }
+    .dark .metric-value { text-shadow: 0 0 18px currentColor; }
     
     /* ===== FLIPBOOK ENGINE ===== */
     .flipbook-container {
@@ -412,6 +447,7 @@
       <button onclick="fetchAllData()" id="refreshBtn" class="top-btn ruby">↻ Refresh</button>
       <button onclick="openProModal()" id="proBtn" class="top-btn citrine">⭐ Pro</button>
       <button onclick="shareCurrentPage()" id="shareBtn" class="top-btn peridot" aria-label="Share this page">🔗</button>
+      <button onclick="toggleMagic()" id="magicToggle" class="top-btn ghost" aria-label="Toggle fireflies & dragon">✨</button>
       <button onclick="toggleDarkMode()" id="darkToggle" class="top-btn ghost" aria-label="Toggle dark mode">🌙</button>
     </div>
   </div>
@@ -520,6 +556,8 @@
       </div>
     </div>
   </div>
+
+  <div class="magic-layer" id="magicLayer" aria-hidden="true"></div>
 
   <script>
     // ============ GEMSTONE COLOR CONSTANTS ============
@@ -4976,9 +5014,67 @@
       const meta = document.querySelector('meta[name="theme-color"]');
       if (meta) meta.setAttribute('content', dark ? '#0b1120' : '#1e3a8a');
       try { localStorage.setItem('marketAnalyzerDark', dark ? '1' : '0'); } catch (e) {}
+      if (dark) initMagic();
     }
     function toggleDarkMode() {
       applyDarkMode(!document.documentElement.classList.contains('dark'));
+    }
+
+    // ============ ENCHANTED NIGHT — fireflies & dragon ============
+    const DRAGON_SVG = `<svg class="dragon-body" width="240" height="130" viewBox="0 0 240 130" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="dbody" x1="0" y1="0" x2="240" y2="0" gradientUnits="userSpaceOnUse">
+          <stop offset="0" stop-color="#e0115f"/><stop offset=".55" stop-color="#f5c542"/><stop offset="1" stop-color="#ffdf00"/>
+        </linearGradient>
+      </defs>
+      <path class="wingFar" d="M118 56 C120 34 138 22 156 24 C142 32 136 44 134 60 Z" fill="rgba(245,197,66,.26)" stroke="rgba(255,223,0,.55)" stroke-width="1.5"/>
+      <path d="M14 96 C40 92 46 74 64 68 C86 61 96 72 116 64 C132 57 142 54 154 50" stroke="url(#dbody)" stroke-width="11" stroke-linecap="round"/>
+      <path d="M14 96 C24 94.5 30 91 36 87" stroke="#e0115f" stroke-width="5" stroke-linecap="round"/>
+      <path d="M70 63 l6 -9 l4 9 Z M92 62 l6 -10 l4 10 Z M114 58 l6 -10 l4 10 Z" fill="rgba(255,223,0,.75)"/>
+      <path class="wingNear" d="M104 58 C104 30 126 14 150 16 C132 26 124 42 122 62 Z" fill="rgba(255,223,0,.38)" stroke="#f5c542" stroke-width="1.5"/>
+      <path d="M154 50 L186 40 L178 52 L190 56 L172 62 C164 64 156 60 154 50 Z" fill="url(#dbody)"/>
+      <path d="M180 38 l8 -10 M188 44 l11 -6" stroke="#ffdf00" stroke-width="2.5" stroke-linecap="round"/>
+      <circle cx="176" cy="47" r="2.2" fill="#0c0a09"/>
+      <path d="M190 56 q10 2 14 8 M186 60 q8 6 9 13" stroke="rgba(255,223,0,.8)" stroke-width="1.6" stroke-linecap="round"/>
+    </svg>`;
+
+    let magicPrefApplied = false;
+    function initMagic() {
+      applyMagicPref();
+      const layer = document.getElementById('magicLayer');
+      if (!layer || layer.dataset.built === '1') return;
+      layer.dataset.built = '1';
+      for (let i = 0; i < 18; i++) {
+        const f = document.createElement('span');
+        f.className = 'firefly';
+        const size = 4 + Math.random() * 5;
+        f.style.width = size + 'px';
+        f.style.height = size + 'px';
+        f.style.left = (Math.random() * 100) + '%';
+        f.style.top = (12 + Math.random() * 78) + '%';
+        f.style.setProperty('--dx', (Math.random() * 180 - 90).toFixed(0) + 'px');
+        f.style.setProperty('--dy', (Math.random() * 160 - 80).toFixed(0) + 'px');
+        f.style.setProperty('--dur', (9 + Math.random() * 14).toFixed(1) + 's');
+        f.style.setProperty('--delay', (-Math.random() * 22).toFixed(1) + 's');
+        f.style.setProperty('--peak', (0.7 + Math.random() * 0.3).toFixed(2));
+        layer.appendChild(f);
+      }
+      const d = document.createElement('div');
+      d.className = 'dragon-fly';
+      d.style.setProperty('--top', (6 + Math.random() * 28).toFixed(0) + '%');
+      d.style.setProperty('--ddur', (48 + Math.random() * 20).toFixed(0) + 's');
+      d.style.setProperty('--ddelay', (-Math.random() * 55).toFixed(0) + 's');
+      d.innerHTML = DRAGON_SVG;
+      layer.appendChild(d);
+    }
+    function applyMagicPref() {
+      if (magicPrefApplied) return;
+      magicPrefApplied = true;
+      try { if (localStorage.getItem('pma_magic') === '0') document.body.classList.add('magic-off'); } catch (e) {}
+    }
+    function toggleMagic() {
+      const off = document.body.classList.toggle('magic-off');
+      try { localStorage.setItem('pma_magic', off ? '0' : '1'); } catch (e) {}
     }
 
     // ============ INIT ============
