@@ -5156,6 +5156,54 @@
       D: { label: 'D — Revival Bet', desc: 'High risk / high reward turnaround', cls: 'bg-rose-100 text-rose-800 border-rose-300', bar: 'var(--ruby)' }
     };
 
+    const IDEA_BANK = [
+      { group: '☕ Coffee-Can Compounders', lens: 'Mukherjea / Raamdeo — consistency + moat, hold for years', stocks: [
+        { s: 'HDFCBANK', n: 'HDFC Bank', w: 'Retail-lending machine; 20+ yrs of compounding' },
+        { s: 'TITAN', n: 'Titan', w: 'Jewellery+watch brand moat (Tanishq)' },
+        { s: 'ASTRAL', n: 'Astral', w: 'Pipes & adhesives; distribution lock-in' },
+        { s: 'KOTAKBANK', n: 'Kotak Mahindra Bank', w: 'Conservative underwriting culture' },
+        { s: 'ASIANPAINT', n: 'Asian Paints', w: 'Decorative paints dominance + supply chain' }
+      ]},
+      { group: '🏛️ Quasi-Monopoly Toll Booths', lens: 'Damani / Paharia — moat first, pay-up okay', stocks: [
+        { s: 'BSE', n: 'BSE Ltd', w: 'Exchange duopoly; volume-cyclical earnings' },
+        { s: 'CDSL', n: 'CDSL', w: 'Depository duopoly, cash-rich toll booth' },
+        { s: 'CAMS', n: 'CAMS', w: '~70% of MF RTA market — monopoly-like' },
+        { s: 'MCX', n: 'MCX', w: 'Commodity exchange monopoly' },
+        { s: 'IEX', n: 'IEX', w: 'Power exchange near-monopoly (watch regulation)' }
+      ]},
+      { group: '🧴 Brand Moats on Simple Products', lens: 'Prashant Jain — one-line businesses anyone understands', stocks: [
+        { s: 'PIDILITIND', n: 'Pidilite', w: 'Fevicol = iconic pricing power' },
+        { s: 'COLPAL', n: 'Colgate India', w: 'Category king for decades' },
+        { s: 'DABUR', n: 'Dabur', w: 'Ayurvedic brand trust, steady grower' },
+        { s: 'HAVELLS', n: 'Havells', w: 'Electricals distribution moat' },
+        { s: 'MARICO', n: 'Marico', w: 'Parachute franchise, cash flows like clockwork' }
+      ]},
+      { group: '🔄 Moaty Cyclicals — buy at the trough', lens: 'S. Naren — contrarian cycle timing', stocks: [
+        { s: 'ADANIPORTS', n: 'Adani Ports', w: 'Port land-grab moat; trade-cycle earnings' },
+        { s: 'ULTRACEMCO', n: 'UltraTech Cement', w: 'Scale leader in regional-pricing cement' },
+        { s: 'MRF', n: 'MRF', w: 'Brand + dealer network; tyre-cycle lumpy' },
+        { s: 'TATASTEEL', n: 'Tata Steel', w: 'Classic commodity cycle — accumulate at trough' },
+        { s: 'SBIN', n: 'SBI', w: 'PSU banking cycle bellwether' }
+      ]},
+      { group: '💎 Revival Watchlist — tiny size only!', lens: 'Porinju / Shyam Sekhar — broken stories at deep value', stocks: [
+        { s: 'IDEA', n: 'Vodafone Idea', w: 'Distressed telecom; survival optionality' },
+        { s: 'YESBANK', n: 'Yes Bank', w: 'Rebuild story post-rescue' },
+        { s: 'SPICEJET', n: 'SpiceJet', w: 'Turnaround airline bet' }
+      ]}
+    ];
+
+    function analyzeIdea(sym) {
+      const el = document.getElementById('abcdSymbol');
+      if (el) el.value = sym;
+      const p = document.getElementById('abcdPrice');
+      if (p) p.value = '';
+      runAbcdPanel();
+      setTimeout(() => {
+        const r = document.getElementById('abcdResult');
+        if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 120);
+    }
+
     function abcdClamp(v, lo = 5, hi = 98) { return Math.max(lo, Math.min(hi, Math.round(v))); }
 
     function abcdProfile(symbol) {
@@ -5407,6 +5455,28 @@
             </ul>
             <p class="text-xs text-gray-700 dark:text-gray-200"><span class="text-[11px] text-gray-500">In our panel this maps to grade <strong>D — Revival</strong>: broken or beaten-down stories at deep value. The asymmetry is the attraction — crushed valuations limit downside while a successful revival can multiply — but only if you keep the size tiny, the exit pre-planned and the patience long. If you can't do all three, stay in A-grade compounders.</span></p>
           </div>
+        </div>
+
+        <div class="card p-5 md:p-6 mt-6">
+          <h3 class="text-lg font-bold mb-1" style="color:var(--ruby)">💡 Expert Idea Bank</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-300 mb-4">Curated stocks grouped by the expert lens they best fit. Tap <strong>Analyze</strong> on any name to run all 19 experts on it instantly — then check the margin of safety before acting.</p>
+          ${IDEA_BANK.map(g => `
+            <div class="mb-5 last:mb-0">
+              <div class="flex flex-wrap items-baseline gap-x-2">
+                <span class="font-bold text-sm">${g.group}</span>
+                <span class="text-[11px] text-gray-500 dark:text-gray-400">${g.lens}</span>
+              </div>
+              <div class="grid gap-2 mt-2">
+                ${g.stocks.map(st => `
+                  <div class="flex items-center justify-between gap-3 rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2 bg-white/60 dark:bg-gray-800/40">
+                    <div class="min-w-0">
+                      <div class="text-sm font-bold">${st.s} <span class="font-normal text-gray-500 dark:text-gray-300">· ${st.n}</span></div>
+                      <div class="text-[11px] text-gray-500 dark:text-gray-400 truncate">${st.w}</div>
+                    </div>
+                    <button onclick="analyzeIdea('${st.s}')" class="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full text-white transition-transform active:scale-95" style="background:linear-gradient(135deg,var(--ruby),var(--citrine))">Analyze →</button>
+                  </div>`).join('')}
+              </div>
+            </div>`).join('')}
         </div>`;
     }
 
