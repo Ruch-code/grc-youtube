@@ -1423,6 +1423,14 @@
       });
       const ownerBtn = document.getElementById('ownerUnlockRow');
       if (ownerBtn) ownerBtn.classList.toggle('hidden', isPro());
+      try {
+        const fc = document.querySelector('#page-abcd .page-front .page-content');
+        if (fc && fc.dataset.rendered === '1') {
+          fc.dataset.rendered = '0';
+          const idx = PAGES.findIndex(p => p.id === 'abcd');
+          if (idx >= 0 && currentPage === idx) { fc.innerHTML = PAGES[idx].render(); fc.dataset.rendered = '1'; runPageHooks('abcd'); }
+        }
+      } catch (e) {}
     }
 
     // Inject a premium banner into every locked section so free users
@@ -1580,6 +1588,10 @@
     // Stock universe categorized by price range (Indian stocks)
     const STOCK_UNIVERSE = {
       low: [     // ₹50 - ₹500 (Low range)
+        { symbol: 'RACLGEAR', name: 'RACL Geartech', sector: 'Auto Components', basePrice: 100, volatility: 0.06 },
+        { symbol: 'SHIVALIK', name: 'Shivalik Bimetal', sector: 'Engineering', basePrice: 130, volatility: 0.055 },
+        { symbol: 'JASH', name: 'Jash Engineering', sector: 'Water Infra', basePrice: 230, volatility: 0.055 },
+        { symbol: 'NRBBEARING', name: 'NRB Bearings', sector: 'Auto Components', basePrice: 450, volatility: 0.045 },
         { symbol: 'IDEA', name: 'Vodafone Idea', sector: 'Telecom', basePrice: 15, volatility: 0.08 },
         { symbol: 'SUZLON', name: 'Suzlon Energy', sector: 'Renewable', basePrice: 45, volatility: 0.06 },
         { symbol: 'YESBANK', name: 'Yes Bank', sector: 'Banking', basePrice: 22, volatility: 0.07 },
@@ -1595,6 +1607,10 @@
         { symbol: 'BEL', name: 'Bharat Electronics', sector: 'Defence', basePrice: 410, volatility: 0.03 },
       ],
       mid: [     // ₹500 - ₹2000 (Mid range)
+        { symbol: 'YATHARTH', name: 'Yatharth Hospital', sector: 'Healthcare', basePrice: 620, volatility: 0.05 },
+        { symbol: 'SHILCHAR', name: 'Shilchar Technologies', sector: 'Power / Transformers', basePrice: 850, volatility: 0.06 },
+        { symbol: 'PARASDEFENCE', name: 'Paras Defence & Space', sector: 'Defence', basePrice: 970, volatility: 0.06 },
+        { symbol: 'CAPLIPOINT', name: 'Caplin Point Labs', sector: 'Pharma', basePrice: 980, volatility: 0.045 },
         { symbol: 'SBIN', name: 'State Bank of India', sector: 'Banking', basePrice: 780, volatility: 0.025 },
         { symbol: 'ICICIBANK', name: 'ICICI Bank', sector: 'Banking', basePrice: 1100, volatility: 0.022 },
         { symbol: 'AXISBANK', name: 'Axis Bank', sector: 'Banking', basePrice: 1150, volatility: 0.024 },
@@ -1775,6 +1791,94 @@
         whyBuy: 'Capex upcycle beneficiary (Govt infra push ₹10L Cr+), order book 3x revenue, IT subsidiaries worth ₹1.5L Cr not fully valued, defence manufacturing PLI, reasonable 24x PE',
         entryZone: '₹3,250 - 3,400', stopLoss: '₹2,900', target1: '₹4,000', target2: '₹4,600',
         timeHorizon: '3-5 years', conviction: 'High'
+      },
+      {
+        symbol: 'SHILCHAR', name: 'Shilchar Technologies', sector: 'Power / Transformers', price: 850, marketCap: '₹4,400 Cr',
+        roe: 30, roce: 36, debtToEquity: 0.05, salesCAGR3Y: 35, profitCAGR3Y: 58,
+        promoterHolding: 74.9, fiiHolding: 3.2, peRatio: 27, pbRatio: 11, dividendYield: 0.4,
+        priceVs50DMA: 6, priceVs200DMA: 18, rsi: 62, trend: 'Strong Uptrend',
+        moat: 'Niche dry-type & specialty transformers, exports to 40+ countries, US grid shortage driving pricing power, high-margin custom orders',
+        risks: 'Order lumpiness, capacity ramp execution, currency swings, new entrants chasing the theme',
+        whyBuy: 'Global grid capex supercycle + US transformer deficit; 60%+ revenue from exports; debt-free with capacity doubling FY26-27; tiny base = big % growth',
+        entryZone: '₹800 - 870', stopLoss: '₹720', target1: '₹1,050', target2: '₹1,250',
+        timeHorizon: '2-4 years', conviction: 'High'
+      },
+      {
+        symbol: 'JASH', name: 'Jash Engineering', sector: 'Water Infrastructure', price: 230, marketCap: '₹2,000 Cr',
+        roe: 15, roce: 19, debtToEquity: 0.08, salesCAGR3Y: 14, profitCAGR3Y: 18,
+        promoterHolding: 56.8, fiiHolding: 12.5, peRatio: 38, pbRatio: 5.6, dividendYield: 0.6,
+        priceVs50DMA: 2.5, priceVs200DMA: 10, rsi: 55, trend: 'Uptrend',
+        moat: 'Niche water-infra equipment (gates, screens, hydraulic systems) with global approvals; 60%+ exports; decades-long client relationships',
+        risks: 'Government capex cycles, small company scale, project timing slippages',
+        whyBuy: 'Water/wastewater spending is a decade theme in India + abroad; asset-light high-margin niche; institutional discovery still early',
+        entryZone: '₹210 - 240', stopLoss: '₹185', target1: '₹290', target2: '₹340',
+        timeHorizon: '3-5 years', conviction: 'High'
+      },
+      {
+        symbol: 'PARASDEFENCE', name: 'Paras Defence & Space', sector: 'Defence Electronics', price: 970, marketCap: '₹3,900 Cr',
+        roe: 7.5, roce: 10.5, debtToEquity: 0.28, salesCAGR3Y: 28, profitCAGR3Y: 22,
+        promoterHolding: 61.5, fiiHolding: 4.1, peRatio: 175, pbRatio: 22, dividendYield: 0,
+        priceVs50DMA: 4, priceVs200DMA: 15, rsi: 60, trend: 'Uptrend',
+        moat: 'Rare private player in defence electro-optics & space optics; DRDO/ISRO relationships; niche certifications create entry barriers',
+        risks: 'Extremely expensive at ~175x PE; order execution risk; PSU competition; theme crowding',
+        whyBuy: 'Defence indigenisation + space privatisation tailwinds; optics niche is hard to replicate; buy ONLY on sharp dips, never chase',
+        entryZone: '₹750 - 850 (dips only)', stopLoss: '₹650', target1: '₹1,200', target2: '₹1,500',
+        timeHorizon: '3-5 years', conviction: 'Medium'
+      },
+      {
+        symbol: 'SHIVALIK', name: 'Shivalik Bimetal Controls', sector: 'Engineering / Electronics', price: 130, marketCap: '₹1,900 Cr',
+        roe: 16, roce: 20, debtToEquity: 0.12, salesCAGR3Y: 15, profitCAGR3Y: 24,
+        promoterHolding: 59.4, fiiHolding: 8.2, peRatio: 37, pbRatio: 6.2, dividendYield: 0.5,
+        priceVs50DMA: 3, priceVs200DMA: 12, rsi: 57, trend: 'Uptrend',
+        moat: 'One of very few global bimetal strip manufacturers; shunt resistors for meters/EV; defence electronics content growing',
+        risks: 'Metal price pass-through lag, customer concentration, small-cap liquidity',
+        whyBuy: 'Smart meter + EV + defence electronics content story; niche global position; consistent margin expansion',
+        entryZone: '₹118 - 135', stopLoss: '₹105', target1: '₹165', target2: '₹195',
+        timeHorizon: '3-5 years', conviction: 'High'
+      },
+      {
+        symbol: 'RACLGEAR', name: 'RACL Geartech', sector: 'Auto Components', price: 100, marketCap: '₹550 Cr',
+        roe: 13, roce: 17, debtToEquity: 0.05, salesCAGR3Y: 18, profitCAGR3Y: 30,
+        promoterHolding: 54.2, fiiHolding: 2.1, peRatio: 33, pbRatio: 4.4, dividendYield: 0.8,
+        priceVs50DMA: 2, priceVs200DMA: 9, rsi: 54, trend: 'Uptrend',
+        moat: 'Precision gears & bevel gearboxes exported to US/EU OEMs and aftermarket; engineering know-how built over decades',
+        risks: 'Very small scale, customer concentration, working-capital swings',
+        whyBuy: 'China+1 sourcing shift benefiting Indian precision suppliers; near debt-free; profit CAGR 30% off small base',
+        entryZone: '₹90 - 105', stopLoss: '₹82', target1: '₹130', target2: '₹160',
+        timeHorizon: '3-5 years', conviction: 'Medium'
+      },
+      {
+        symbol: 'YATHARTH', name: 'Yatharth Hospital', sector: 'Healthcare', price: 620, marketCap: '₹4,500 Cr',
+        roe: 19, roce: 22, debtToEquity: 0.32, salesCAGR3Y: 26, profitCAGR3Y: 35,
+        promoterHolding: 68.5, fiiHolding: 9.8, peRatio: 42, pbRatio: 7.5, dividendYield: 0,
+        priceVs50DMA: 3.5, priceVs200DMA: 14, rsi: 58, trend: 'Strong Uptrend',
+        moat: 'NCR hospital network with dominant catchments; asset-light brownfield expansions; growing oncology & neuro franchises',
+        risks: 'Doctor retention, capex overruns, pricing regulation on procedures',
+        whyBuy: 'Healthcare premiumisation + bed-count CAGR 20%+; newer hospitals maturing to break-even; promoter-led operating discipline',
+        entryZone: '₹580 - 650', stopLoss: '₹520', target1: '₹780', target2: '₹900',
+        timeHorizon: '3-5 years', conviction: 'High'
+      },
+      {
+        symbol: 'CAPLIPOINT', name: 'Caplin Point Laboratories', sector: 'Pharma', price: 980, marketCap: '₹25,000 Cr',
+        roe: 24, roce: 27, debtToEquity: 0.01, salesCAGR3Y: 21, profitCAGR3Y: 25,
+        promoterHolding: 57.6, fiiHolding: 21.4, peRatio: 31, pbRatio: 7.2, dividendYield: 0.4,
+        priceVs50DMA: 2.8, priceVs200DMA: 13, rsi: 56, trend: 'Strong Uptrend',
+        moat: 'Own last-mile distribution across Latin America/Africa — a moat big pharma ignored; cash-rich; now entering US injectables & India',
+        risks: 'New-market execution, FX volatility, rich valuation leaves little room for stumbles',
+        whyBuy: 'Debt-free 25%+ compounder with unique emerging-market moat; US injectables capex could open the next leg of growth',
+        entryZone: '₹920 - 1,000', stopLoss: '₹840', target1: '₹1,200', target2: '₹1,400',
+        timeHorizon: '3-5 years', conviction: 'Very High'
+      },
+      {
+        symbol: 'NRBBEARING', name: 'NRB Bearings', sector: 'Auto Components', price: 450, marketCap: '₹4,400 Cr',
+        roe: 10, roce: 13, debtToEquity: 0.04, salesCAGR3Y: 12, profitCAGR3Y: 45,
+        promoterHolding: 43.5, fiiHolding: 16.2, peRatio: 44, pbRatio: 4.6, dividendYield: 0.7,
+        priceVs50DMA: 4.5, priceVs200DMA: 16, rsi: 61, trend: 'Strong Uptrend',
+        moat: 'Niche bearings & seals leader; aerospace and EV localization programs; exports scaling with global OEM qualification',
+        risks: 'Auto cycle timing, pace of margin recovery, aerospace order lumpiness',
+        whyBuy: 'Historic turnaround underway (FY26 PAT inflection); FY31 ₹2,500cr revenue roadmap; EV/aero content per vehicle rising',
+        entryZone: '₹420 - 470', stopLoss: '₹380', target1: '₹560', target2: '₹680',
+        timeHorizon: '3-5 years', conviction: 'Medium'
       }
     ];
 
@@ -5291,7 +5395,7 @@
         { s: 'YESBANK', n: 'Yes Bank', w: 'Rebuild story post-rescue' },
         { s: 'SPICEJET', n: 'SpiceJet', w: 'Turnaround airline bet' }
       ]},
-      { group: '🚀 Multi-bagger Radar — the next-Cupid hunt', lens: 'Research candidates, not tips! Small-cap niche monopolies: high ROCE, low debt, export tailwind, pre-discovery. Verify fundamentals before acting.', stocks: [
+      { group: '🚀 Multi-bagger Radar — the next-Cupid hunt', premium: true, lens: 'Research candidates, not tips! Small-cap niche monopolies: high ROCE, low debt, export tailwind, pre-discovery. Verify fundamentals before acting.', stocks: [
         { s: 'SHILCHAR', n: 'Shilchar Technologies', w: 'Export transformers; global grid capex supercycle' },
         { s: 'JASH', n: 'Jash Engineering', w: 'Water-infra niche gates; 60%+ exports' },
         { s: 'PARASDEFENCE', n: 'Paras Defence', w: 'Defence electro-optics niche (DRDO/ISRO)' },
@@ -5304,6 +5408,8 @@
     ];
 
     function analyzeIdea(sym) {
+      const g = IDEA_BANK.find(g => g.premium && (g.stocks || []).some(st => st.s === sym));
+      if (g && !isPro()) { openProModal(); return; }
       const el = document.getElementById('abcdSymbol');
       if (el) el.value = sym;
       const p = document.getElementById('abcdPrice');
@@ -5571,7 +5677,14 @@
         <div class="card p-5 md:p-6 mt-6">
           <h3 class="text-lg font-bold mb-1" style="color:var(--ruby)">💡 Expert Idea Bank</h3>
           <p class="text-xs text-gray-500 dark:text-gray-300 mb-4">Curated stocks grouped by the expert lens they best fit. Tap <strong>Analyze</strong> on any name to run all 19 experts on it instantly — then check the margin of safety before acting.</p>
-          ${IDEA_BANK.map(g => `
+          ${IDEA_BANK.map(g => {
+            if (g.premium && !isPro()) return `
+            <div class="mb-5 last:mb-0 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-gray-800 dark:to-gray-800/60 p-4">
+              <div class="flex items-center gap-2 font-bold text-sm text-indigo-900 dark:text-indigo-200"><span>🔒</span> Multi-bagger Radar — Premium</div>
+              <p class="text-[11px] text-gray-600 dark:text-gray-300 mt-1">Curated small-cap niche monopolies — the next-Cupid hunt: high ROCE, low debt, export tailwinds, pre-institutional-discovery. Unlock to see all picks with one-tap expert analysis.</p>
+              <button onclick="openProModal()" class="mt-2 px-3 py-1.5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-lg text-xs font-semibold">⭐ Go Pro — ₹199/mo</button>
+            </div>`;
+            return `
             <div class="mb-5 last:mb-0">
               <div class="flex flex-wrap items-baseline gap-x-2">
                 <span class="font-bold text-sm">${g.group}</span>
@@ -5587,7 +5700,8 @@
                     <button onclick="analyzeIdea('${st.s}')" class="shrink-0 text-xs font-semibold px-3 py-1.5 rounded-full text-white transition-transform active:scale-95" style="background:linear-gradient(135deg,var(--ruby),var(--citrine))">Analyze →</button>
                   </div>`).join('')}
               </div>
-            </div>`).join('')}
+            </div>`;
+          }).join('')}
         </div>`;
     }
 
