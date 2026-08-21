@@ -406,6 +406,7 @@
       <span id="lastUpdate" class="font-mono text-xs text-gray-500 hidden sm:inline-block px-2 py-1 bg-gray-100 rounded dark:bg-gray-800">Not fetched</span>
       <button onclick="fetchAllData()" id="refreshBtn" class="top-btn ruby">↻ Refresh</button>
       <button onclick="openProModal()" id="proBtn" class="top-btn citrine">⭐ Pro</button>
+      <button onclick="shareCurrentPage()" id="shareBtn" class="top-btn peridot" aria-label="Share this page">🔗</button>
       <button onclick="toggleDarkMode()" id="darkToggle" class="top-btn ghost" aria-label="Toggle dark mode">🌙</button>
     </div>
   </div>
@@ -652,8 +653,43 @@
         renderPage(index);
         currentPage = index;
         updateNavigation();
+        syncUrlPage(PAGES[index].id);
         isAnimating = false;
       }, 380);
+    }
+
+    // ============ SHAREABLE DEEP LINKS ============
+    function syncUrlPage(id) {
+      try {
+        const p = new URLSearchParams(location.search);
+        p.set('page', id);
+        history.replaceState(null, '', `${location.pathname}?${p.toString()}`);
+      } catch (e) {}
+    }
+
+    function canonicalShareUrl(id) {
+      return `https://premarket-analyzer.pages.dev/?page=${id}`;
+    }
+
+    async function shareCurrentPage() {
+      const page = PAGES[currentPage] || PAGES[0];
+      syncUrlPage(page.id);
+      const url = location.href.startsWith('http') && !location.hostname.includes('localhost')
+        ? location.href
+        : canonicalShareUrl(page.id);
+      if (navigator.share) {
+        try { await navigator.share({ title: `${page.title} — Pre-Market Analyzer`, text: page.subtitle, url }); return; } catch (e) { return; }
+      }
+      try { await navigator.clipboard.writeText(url); showToast('🔗 Link copied — ready to paste anywhere'); }
+      catch (e) { prompt('Copy this shareable link:', url); }
+    }
+
+    function showToast(msg) {
+      const t = document.createElement('div');
+      t.textContent = msg;
+      t.style.cssText = 'position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--obsidian);color:#fff;padding:10px 18px;border-radius:12px;font-size:12px;font-weight:600;z-index:300;box-shadow:0 8px 24px rgba(0,0,0,.25);';
+      document.body.appendChild(t);
+      setTimeout(() => t.remove(), 2600);
     }
 
     function applyZ() {
@@ -5436,7 +5472,8 @@
     function openQuickActionMenu() {
       const quick = [
         { icon: '📖', label: 'Table of Contents', page: 'contents' },
-        { icon: '↻', label: 'Refresh live data', fn: () => fetchAllData() },
+        { icon: '↻', label: 'Refresh live data', call: 'fetchAllData' },
+        { icon: '🔗', label: 'Share this page', call: 'shareCurrentPage' },
         { icon: '📊', label: 'Dashboard', page: 'dashboard' },
         { icon: '🌍', label: 'Geopolitics driver', page: 'geopolitics' },
         { icon: '🧠', label: 'ABCD Expert Panel', page: 'abcd' },
@@ -5452,7 +5489,7 @@
             <div class="modal-body space-y-2">
               ${quick.map(q => `
                 <button class="w-full text-left px-4 py-3 rounded-xl bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 transition flex items-center gap-3 font-medium text-gray-800 dark:text-gray-100"
-                  onclick="document.getElementById('modalsContainer').innerHTML='';${q.page ? `goToPage(PAGES.findIndex(p=>p.id==='${q.page}'))` : q.fn.name + '()'}">
+                  onclick="document.getElementById('modalsContainer').innerHTML='';${q.page ? `goToPage(PAGES.findIndex(p=>p.id==='${q.page}'))` : q.call + '()'}">
                   <span class="text-lg">${q.icon}</span>${q.label}
                 </button>`).join('')}
             </div>
@@ -5502,6 +5539,11 @@
       window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); });
 
       const params = new URLSearchParams(location.search);
+      const want = (params.get('page') || '').toLowerCase();
+      if (want) {
+        const idx = PAGES.findIndex(p => p.id === want);
+        if (idx > 0) setTimeout(() => goToPage(idx), 400);
+      }
       if (params.get('portfolio')) {
         const idx = PAGES.findIndex(p => p.id === 'portfolio');
         if (idx > 0) setTimeout(() => goToPage(idx), 500);
