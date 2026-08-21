@@ -84,6 +84,13 @@
       overflow: hidden;
     }
     
+    .page-front, .page-back {
+      position: absolute;
+      inset: 0;
+      backface-visibility: hidden;
+      overflow: hidden;
+      border-radius: 20px;
+    }
     .page-front { z-index: 10; transform-origin: left center; }
     .page-back { z-index: 5; transform: rotateY(-180deg); transform-origin: right center; }
     .page-front, .page-back { transition: transform 0.7s cubic-bezier(0.23, 1, 0.32, 1); }
@@ -94,10 +101,10 @@
     .page-content {
       width: 100%;
       height: 100%;
-      padding: 28px;
+      padding: 88px 24px 108px;
       overflow-y: auto;
-      display: flex;
-      flex-direction: column;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior: contain;
     }
     
     /* ===== TOP BAR ===== */
@@ -388,7 +395,7 @@
 <body class="top-safe">
   <!-- Top Bar -->
   <div class="top-bar" role="navigation" aria-label="Main navigation">
-    <div style="display:flex;align-items:center;gap:10px;">
+    <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="goToPage(0)" role="button" aria-label="Go to table of contents">
       <div class="brand-badge"><img src="assets/me.png" alt="Ruch" style="width:26px;height:26px;border-radius:8px;"></div>
       <div class="brand-text">
         <h1>Pre-Market Analyzer<span>™</span></h1>
@@ -5002,6 +5009,33 @@
       btn.innerHTML = collapsed ? '🗂 Show Steps' : '🗂 Minimize Steps';
     }
 
+    // ============ PAGE: COVER / TABLE OF CONTENTS ============
+    function themeColorOf(t) {
+      return t === 'ruby' ? 'var(--ruby)' : t === 'citrine' ? '#a08800' : 'var(--peridot)';
+    }
+
+    function renderContents() {
+      const chapters = PAGES.map((p, i) => ({ ...p, n: i })).slice(1);
+      return `
+        <div class="text-center mb-5 pop-in">
+          <div style="font-size:0.62rem;font-weight:800;letter-spacing:0.28em;color:var(--ruby);text-transform:uppercase;">Pre-Market Analyzer™</div>
+          <h1 class="text-3xl font-black text-gray-900 dark:text-white mt-2" style="line-height:1.12;">Your Daily<br>Wealth Compass</h1>
+          <p class="text-xs text-gray-500 mt-2">${new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${chapters.length} chapters · tap any card</p>
+        </div>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-2.5">
+          ${chapters.map(p => `
+            <button onclick="goToPage(${p.n})" class="card text-left" style="border-left:4px solid ${themeColorOf(p.theme)};padding:12px 14px;">
+              <div class="flex items-center justify-between">
+                <span style="font-size:1.05rem;">${p.icon}</span>
+                <span class="text-[9px] font-black uppercase tracking-wider" style="color:${themeColorOf(p.theme)};">Ch ${p.n}</span>
+              </div>
+              <div class="font-bold text-[13px] leading-tight mt-1.5 text-gray-900 dark:text-white">${p.title.replace(/^\S+\s/, '')}</div>
+              <div class="text-[10px] text-gray-500 mt-0.5 leading-snug">${p.subtitle}</div>
+            </button>`).join('')}
+        </div>
+        <div class="text-center text-[10px] text-gray-400 mt-4">Swipe, use ← → keys, or the dots below · ⚡ button = quick actions</div>`;
+    }
+
     // ============ FLIPBOOK PAGE HOOKS ============
     const PAGE_HOOKS = {
       dashboard: () => { try { updateUI(window.lastMarketData || getStableMockData()); } catch (e) {} },
@@ -5027,8 +5061,11 @@
     const _refreshPersonalWatch = refreshPersonalWatch;
     refreshPersonalWatch = function (manual) { try { _refreshPersonalWatch(manual); } catch (e) {} };
 
-    // ============ NEW PAGES (inserted before crypto) ============
-    PAGES.splice(7, 0,
+    // ============ NEW PAGES (cover first, then inserts) ============
+    PAGES.unshift(
+      { id: 'contents', title: '📖 Contents', subtitle: 'Tap any chapter to jump straight to it', icon: '📖', theme: 'ruby', render: renderContents }
+    );
+    PAGES.splice(8, 0,
       { id: 'abcd', title: '🧠 ABCD Expert Panel', subtitle: "India's market wizards score your stock", icon: '🧠', theme: 'citrine', render: renderAbcdPage }
     );
     const cryptoIdx = PAGES.findIndex(p => p.id === 'crypto');
@@ -5379,6 +5416,7 @@
     // ============ QUICK ACTION MENU ============
     function openQuickActionMenu() {
       const quick = [
+        { icon: '📖', label: 'Table of Contents', page: 'contents' },
         { icon: '↻', label: 'Refresh live data', fn: () => fetchAllData() },
         { icon: '📊', label: 'Dashboard', page: 'dashboard' },
         { icon: '🌍', label: 'Geopolitics driver', page: 'geopolitics' },
