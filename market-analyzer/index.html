@@ -72,21 +72,21 @@
 
     .dragon-fly { position: absolute; top: var(--top, 18%); left: -280px; animation: dragonCross var(--ddur,55s) linear var(--ddelay,0s) infinite; will-change: transform; }
     .dragon-body { animation: dragonBob 5.5s ease-in-out infinite; opacity:.94;
-      filter: drop-shadow(0 0 9px rgba(228,208,10,.85)) drop-shadow(0 0 28px rgba(228,208,10,.4)) drop-shadow(0 0 60px rgba(224,17,95,.18)); }
+      filter: drop-shadow(0 0 12px rgba(245,197,66,.75)); }
     .dragon-fly .wingNear { transform-origin: 106px 58px; animation: wingFlap 1.5s ease-in-out infinite; }
     .dragon-fly .wingFar  { transform-origin: 120px 56px; animation: wingFlap 1.5s ease-in-out .12s infinite; }
     @keyframes dragonCross { from { transform: translateX(0); } to { transform: translateX(calc(100vw + 580px)); } }
     @keyframes dragonBob { 0%,100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-26px) rotate(2.5deg); } }
     @keyframes wingFlap { 0%,100% { transform: rotate(0deg); } 50% { transform: rotate(-13deg); } }
 
-    /* dark-mode glow boosts */
-    .dark .page-header { animation: headerGlow 4.5s ease-in-out infinite; }
-    @keyframes headerGlow {
-      0%,100% { text-shadow: 0 0 14px rgba(255,255,255,.10), 0 0 34px currentColor; }
-      50%     { text-shadow: 0 0 20px rgba(255,255,255,.20), 0 0 52px currentColor; }
-    }
+    /* dark-mode glow boosts (static shadows — animated text-shadow causes repaint flicker) */
+    .dark .page-header { text-shadow: 0 0 16px rgba(255,255,255,.12), 0 0 38px currentColor; }
     .dark .card { box-shadow: 0 8px 30px rgba(0,0,0,.35), 0 0 24px rgba(228,208,10,.05), inset 0 0 46px rgba(228,208,10,.02); border-color: rgba(228,208,10,.15); }
     .dark .metric-value { text-shadow: 0 0 18px currentColor; }
+    @media (prefers-reduced-motion: reduce) {
+      .magic-layer { display: none !important; }
+      .firefly, .dragon-fly, .dragon-body, .dragon-fly .wingNear, .dragon-fly .wingFar { animation: none !important; }
+    }
     
     /* ===== FLIPBOOK ENGINE ===== */
     .flipbook-container {
@@ -1425,10 +1425,11 @@
       if (ownerBtn) ownerBtn.classList.toggle('hidden', isPro());
       try {
         const fc = document.querySelector('#page-abcd .page-front .page-content');
-        if (fc && fc.dataset.rendered === '1') {
-          fc.dataset.rendered = '0';
-          const idx = PAGES.findIndex(p => p.id === 'abcd');
-          if (idx >= 0 && currentPage === idx) { fc.innerHTML = PAGES[idx].render(); fc.dataset.rendered = '1'; runPageHooks('abcd'); }
+        const idx = PAGES.findIndex(p => p.id === 'abcd');
+        if (fc && idx >= 0 && currentPage === idx && fc.dataset.rendered === '1' && fc.dataset.proState !== String(isPro())) {
+          fc.innerHTML = PAGES[idx].render();
+          fc.dataset.proState = String(isPro());
+          runPageHooks('abcd');
         }
       } catch (e) {}
     }
