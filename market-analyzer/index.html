@@ -184,6 +184,21 @@
       margin: 0 auto;
     }
     .dark .top-bar { background: rgba(15,12,10,0.9); border-color: rgba(255,255,255,0.06); }
+
+    /* Mobile top-bar: keep every control reachable */
+    @media (max-width: 700px) {
+      .top-bar { top: 8px; left: 8px; right: 8px; padding: 7px 10px; gap: 6px; flex-wrap: wrap; }
+      .brand-badge { width: 30px; height: 30px; border-radius: 9px; }
+      .brand-text p { display: none; }
+      .brand-text h1 { font-size: 0.78rem; }
+      .top-btn { padding: 6px 9px; font-size: 0.64rem; gap: 4px; }
+    }
+    @media (max-width: 430px) {
+      .brand-text h1 { font-size: 0.7rem; max-width: 92px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      #shareBtn { display: none !important; }  /* still available in ⚡ quick actions */
+      #proBtn { padding: 5px 7px; }
+      .top-btn { padding: 5px 7px; font-size: 0.62rem; }
+    }
     
     .brand-badge {
       width: 38px; height: 38px; border-radius: 11px;
@@ -5475,7 +5490,7 @@
         <div class="text-center mb-5 pop-in">
           <div style="font-size:0.62rem;font-weight:800;letter-spacing:0.28em;color:var(--ruby-text);text-transform:uppercase;">Pre-Market Analyzer™</div>
           <h1 class="text-3xl font-black text-gray-900 dark:text-white mt-2" style="line-height:1.12;">Your Daily<br>Wealth Compass</h1>
-          <p class="text-xs text-gray-500 mt-2">${new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${chapters.length} chapters · tap any card</p>
+          <p class="text-xs text-gray-600 dark:text-gray-300 mt-2">${new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })} · ${chapters.length} chapters · tap any card</p>
         </div>
         <div class="grid grid-cols-2 md:grid-cols-3 gap-2.5">
           ${chapters.map(p => `
@@ -5485,10 +5500,10 @@
                 <span class="text-[9px] font-black uppercase tracking-wider" style="color:${themeColorOf(p.theme)};">Ch ${p.n}</span>
               </div>
               <div class="font-bold text-[13px] leading-tight mt-1.5 text-gray-900 dark:text-white">${p.title.replace(/^\S+\s/, '')}</div>
-              <div class="text-[10px] text-gray-500 mt-0.5 leading-snug">${p.subtitle}</div>
+              <div class="text-[10px] text-gray-600 dark:text-gray-300 mt-0.5 leading-snug">${p.subtitle}</div>
             </button>`).join('')}
         </div>
-        <div class="text-center text-[10px] text-gray-400 mt-4">Swipe, use ← → keys, or the dots below · ⚡ button = quick actions</div>`;
+        <div class="text-center text-[10px] text-gray-500 dark:text-gray-400 mt-4">Swipe, use ← → keys, or the dots below · ⚡ button = quick actions</div>`;
     }
 
     // ============ FLIPBOOK PAGE HOOKS ============
