@@ -18,7 +18,7 @@
   <style>
     * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
     html, body { height: 100%; overflow: hidden; margin: 0; }
-    body { background: linear-gradient(145deg, #fdf2f7 0%, #f7eff3 45%, #eceef1 100%); }
+    body { background: linear-gradient(145deg, #fbe4ef 0%, #f5e9ee 45%, #e9ebef 100%); }
     
     /* ===== GEMSTONE COLOR SYSTEM ===== */
     :root {
@@ -964,6 +964,18 @@
           <div class="page-title">${PAGES[4].icon} Momentum Screener</div>
           <div class="page-subtitle">RSI · MACD · Beta from live prices</div>
         </div>
+        <details class="card card-ruby mb-4 p-4">
+          <summary class="cursor-pointer font-bold text-sm">📊 TA Toolkit — how to read these signals (NSE Technical Analysis)</summary>
+          <div class="grid gap-2 mt-3 text-xs text-gray-700 dark:text-gray-200">
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>Trend:</strong> uptrend = higher highs + higher lows. Trade WITH the trend; the screener's 1W/1M columns tell you which phase you're in.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>Support / Resistance:</strong> levels where buying/selling repeatedly overwhelmed the other side. A breakout <em>with above-average volume</em> is a valid signal; without volume it's suspect.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>Moving averages:</strong> price holding above 200-DMA = long-term bull regime. 50-DMA crossing above 200-DMA (golden cross) = momentum confirmation; below (death cross) = exit discipline.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>RSI:</strong> &gt;70 overbought, &lt;30 oversold — strongest when it diverges from price (price new high, RSI not = fading momentum).</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>MACD:</strong> line crossing above signal = bullish shift; widening histogram = strengthening trend; shrinking histogram = trend tiring even if price still rising.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>Candles:</strong> hammer / bullish engulfing near support = buyers stepping in; shooting star near resistance = distribution. Always confirm with the next candle.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>Psychology (NSE Ch.7):</strong> fix position size and stop-loss BEFORE entry; the market pays the disciplined, not the confident.</div>
+          </div>
+        </details>
         <div class="card card-ruby mb-4 pop-in">
           <div class="flex flex-wrap items-center gap-3 mb-3">
             <label class="font-medium text-gray-700">Invest: ₹</label>
@@ -1038,6 +1050,17 @@
           <button onclick="askAbcdFromPortfolio()" class="top-btn citrine flex-1">🧠 Ask Expert Panel</button>
         </div>
         <div id="portfolioResult" class="hidden"></div>
+        <details class="card card-ruby mt-4 p-4">
+          <summary class="cursor-pointer font-bold text-sm">🧮 Investor's Formulas (Thomsett's Pocket Calculator)</summary>
+          <div class="grid gap-2 mt-3 text-xs text-gray-700 dark:text-gray-200 sm:grid-cols-2">
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>Total Return</strong> = (exit − entry + dividends) ÷ entry × 100</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>CAGR</strong> = (final ÷ initial)<sup>1/years</sup> − 1 — the honest annualised number</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>Margin of Safety</strong> = 1 − price ÷ intrinsic value; Dorsey rule: demand ≥15–25%</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>PEG</strong> = PE ÷ growth% — below ~1 is cheap relative to growth</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>Debt/Equity</strong> = total debt ÷ equity — &gt;1 means creditors own more than shareholders</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>ROE / ROCE</strong> = profit ÷ equity / capital employed — sustained &gt;18% signals a real business</div>
+          </div>
+        </details>
       `;
     }
 
@@ -5309,7 +5332,7 @@
       const layer = document.getElementById('notesLayer');
       if (!layer || layer.dataset.built === '1') return;
       layer.dataset.built = '1';
-      for (let i = 0; i < 14; i++) {
+      for (let i = 0; i < 16; i++) {
         const n = document.createElement('div');
         n.className = 'note-fly ' + (i % 2 ? 'note-500' : 'note-2000');
         const w = 64 + Math.random() * 76;
@@ -5317,7 +5340,7 @@
         n.style.setProperty('--y', (Math.random() * 90).toFixed(1) + 'vh');
         n.style.width = w.toFixed(0) + 'px';
         n.style.height = (w * 0.47).toFixed(0) + 'px';
-        n.style.opacity = (0.07 + Math.random() * 0.09).toFixed(2);
+        n.style.opacity = (0.14 + Math.random() * 0.13).toFixed(2);
         n.style.setProperty('--dx', (Math.random() * 220 - 110).toFixed(0) + 'px');
         n.style.setProperty('--dy', (Math.random() * 160 - 80).toFixed(0) + 'px');
         n.style.setProperty('--dur', (16 + Math.random() * 18).toFixed(1) + 's');
@@ -5825,6 +5848,18 @@
               <li><strong>Deep homework:</strong> why exactly is it cheap? Promoter skin-in-the-game, debt runway, asset replacement value — buy the fixable problem, not the falling knife.</li>
             </ul>
             <p class="text-xs text-gray-700 dark:text-gray-200"><span class="text-[11px] text-gray-500">In our panel this maps to grade <strong>D — Revival</strong>: broken or beaten-down stories at deep value. The asymmetry is the attraction — crushed valuations limit downside while a successful revival can multiply — but only if you keep the size tiny, the exit pre-planned and the patience long. If you can't do all three, stay in A-grade compounders.</span></p>
+          </div>
+        </div>
+
+        <div class="card p-5 md:p-6 mt-6">
+          <h3 class="text-lg font-bold mb-1" style="color:var(--ruby-text)">📕 The Five Rules — Pat Dorsey (Morningstar)</h3>
+          <p class="text-xs text-gray-500 dark:text-gray-300 mb-3">From <em>The Five Rules for Successful Stock Investing</em> — the framework behind our moat scoring.</p>
+          <div class="grid gap-2 text-xs text-gray-700 dark:text-gray-200">
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>1. Lead with your strengths.</strong> Stay inside your circle of competence — if you can't explain how the business makes money in two sentences, skip it.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>2. Find economic moats.</strong> Dorsey's five sources, ranked roughly by durability: 🔒 high switching costs &nbsp;·&nbsp; 💰 cost advantage &nbsp;·&nbsp; 🏛️ barriers to entry &nbsp;·&nbsp; 🏷️ trusted brand &nbsp;·&nbsp; ⚙️ superior technology (weakest — competitors copy features). Our Moat score weighs them in this order.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>3. Have a margin of safety.</strong> Value first, price second — never pay fair value for even a wide-moat business. That's exactly what the Margin-of-Safety % in this panel measures.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>4. Buy low, sell high.</strong> Valuation discipline beats stories; great company ≠ great stock at any price.</div>
+            <div class="rounded-xl border border-gray-200 dark:border-gray-600 px-3 py-2"><strong>5. Invest for the long haul.</strong> Wide moat + consistent free cash flow compounds quietly — churn kills returns.</div>
           </div>
         </div>
 
