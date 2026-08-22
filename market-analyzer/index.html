@@ -18,7 +18,7 @@
   <style>
     * { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; box-sizing: border-box; }
     html, body { height: 100%; overflow: hidden; margin: 0; }
-    body { background: linear-gradient(145deg, #fffdf8 0%, #fef7ee 50%, #fdfdf5 100%); }
+    body { background: linear-gradient(145deg, #fdf2f7 0%, #f7eff3 45%, #eceef1 100%); }
     
     /* ===== GEMSTONE COLOR SYSTEM ===== */
     :root {
@@ -51,7 +51,24 @@
     }
 
     .dark { color-scheme: dark; --ruby-text: var(--ruby-light); --citrine-text: var(--citrine-glow); --peridot-text: var(--peridot-glow); }
-    .dark body { background: linear-gradient(145deg, #0c0a09 0%, #1a1612 50%, #0f0d0a 100%); }
+    .dark body { background: linear-gradient(145deg, #150a11 0%, #26101b 50%, #101216 100%); }
+
+    /* ===== ₹2000/₹500 NOTE CARPET — drifting currency notes behind content ===== */
+    .notes-layer { position: fixed; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
+    body.magic-off .notes-layer { display: none !important; }
+    .note-fly { position: absolute; left: var(--x, 50%); top: var(--y, 50%);
+      animation: noteDrift var(--dur, 22s) ease-in-out var(--delay, 0s) infinite alternate; will-change: transform; }
+    .note-inner { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;
+      border-radius: 7px; font-weight: 800; letter-spacing: .03em;
+      animation: noteSway var(--sway, 6s) ease-in-out var(--delay2, 0s) infinite alternate; }
+    .note-2000 .note-inner { background: linear-gradient(135deg, #c2185b 0%, #e0115f 55%, #f06fa8 100%);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.28), inset 0 -8px 22px rgba(97,10,48,.35);
+      color: #ffe9f4; text-shadow: 0 1px 2px rgba(74,4,35,.5); }
+    .note-500 .note-inner { background: linear-gradient(135deg, #6d707a 0%, #9ba0ab 52%, #c6cad2 100%);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,.30), inset 0 -8px 20px rgba(43,46,54,.35);
+      color: #fafbfc; text-shadow: 0 1px 2px rgba(30,33,40,.5); }
+    @keyframes noteDrift { from { transform: translate(0,0); } to { transform: translate(var(--dx,60px), var(--dy,-40px)); } }
+    @keyframes noteSway { from { transform: rotate(var(--r0,-5deg)); } to { transform: rotate(var(--r1,6deg)) translateY(-8px); } }
 
     /* ===== ENCHANTED NIGHT — glow-in-the-dark magic layer ===== */
     .magic-layer { position: fixed; inset: 0; pointer-events: none; z-index: 60; display: none; overflow: hidden; }
@@ -84,7 +101,7 @@
     .dark .card { box-shadow: 0 8px 30px rgba(0,0,0,.35), 0 0 24px rgba(228,208,10,.05), inset 0 0 46px rgba(228,208,10,.02); border-color: rgba(228,208,10,.15); }
     .dark .metric-value { text-shadow: 0 0 18px currentColor; }
     @media (prefers-reduced-motion: reduce) {
-      .magic-layer { display: none !important; }
+      .magic-layer, .notes-layer { display: none !important; }
       .firefly, .dragon-fly, .dragon-body, .dragon-fly .wingNear, .dragon-fly .wingFar { animation: none !important; }
     }
     
@@ -433,6 +450,7 @@
   </style>
 </head>
 <body class="top-safe">
+  <div class="notes-layer" id="notesLayer" aria-hidden="true"></div>
   <!-- Top Bar -->
   <div class="top-bar" role="navigation" aria-label="Main navigation">
     <div style="display:flex;align-items:center;gap:10px;cursor:pointer;" onclick="goToPage(0)" role="button" aria-label="Go to table of contents">
@@ -3136,6 +3154,8 @@
           silver: toCommodityCard(silver, rate * 1000 / 31.1035, 1),
           oil: toCommodityCard(oil, rate, 1)
         };
+        if (!out.commodities.gold) { const c = await goldApiCard('XAU', rate, 10); if (c) out.commodities.gold = c; }
+        if (!out.commodities.silver) { const c = await goldApiCard('XAG', rate, 1000); if (c) out.commodities.silver = c; }
         out.mode = 'yahoo';
         return out;
       }
@@ -3160,8 +3180,110 @@
           oil: toCommodityCard(oil, rate, 1)
         };
       } catch (e) {}
+      if (!out.commodities) out.commodities = {};
+      if (!out.commodities.gold) { const c = await goldApiCard('XAU', 85, 10); if (c) out.commodities.gold = c; }
+      if (!out.commodities.silver) { const c = await goldApiCard('XAG', 85, 1000); if (c) out.commodities.silver = c; }
       out.mode = useProxy ? 'proxy' : 'twelve';
       return out;
+    }
+
+    // Gold/Silver fallback via gold-api.com (free, no key) — ₹ per 10g / per kg
+    async function goldApiCard(sym, usdInrRate, grams) {
+      try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 9000);
+        const r = await fetch(`https://api.gold-api.com/price/${sym}`, { signal: controller.signal });
+        clearTimeout(timeout);
+        if (!r.ok) return null;
+        const j = await r.json();
+        if (!j || !j.price) return null;
+        const cur = j.price * (usdInrRate || 85) * grams / 31.1035;
+        return { current: cur, value: cur, change: null, changePct: null };
+      } catch (e) { return null; }
+    }
+
+    // Live crypto 24h tickers via Binance (free, no key) + Fear & Greed via alternative.me
+    async function fetchBinanceTickers() {
+      try {
+        const host = document.querySelector('#page-crypto .page-front .page-content');
+        if (!host) return;
+        let strip = document.getElementById('binanceStrip');
+        if (strip && Date.now() - (+strip.dataset.t || 0) < 60000) return;
+        const syms = ['BTCUSDT', 'ETHUSDT', 'BNBUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT'];
+        const results = await Promise.all(syms.map(s =>
+          fetch('https://api.binance.com/api/v3/ticker/24hr?symbol=' + s).then(r => r.ok ? r.json() : null).catch(() => null)));
+        const rows = results.filter(Boolean);
+        if (!rows.length) return;
+        const fng = await fetch('https://api.alternative.me/fng/?limit=1').then(r => r.ok ? r.json() : null).catch(() => null);
+        const f = fng && fng.data && fng.data[0];
+        let fngHtml = '';
+        if (f) {
+          const v = parseInt(f.value, 10);
+          const cls = v >= 60 ? '#16a34a' : v <= 40 ? '#dc2626' : '#d97706';
+          fngHtml = `<span class="text-[11px] font-bold shrink-0" style="color:${cls}">😱 ${v}/100 · ${escHtml(f.value_classification)}</span>`;
+        }
+        const cards = rows.map(t => {
+          const up = parseFloat(t.priceChangePercent) >= 0;
+          return `<div class="shrink-0 min-w-[132px] rounded-xl border px-3 py-2 ${up ? 'border-green-300 bg-green-50 dark:border-green-700 dark:bg-green-900/20' : 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20'}">
+            <div class="text-xs font-bold">${t.symbol.replace('USDT', '')}<span class="font-normal text-gray-400">/USDT</span></div>
+            <div class="text-sm font-mono font-bold">$${parseFloat(t.lastPrice).toLocaleString('en-US', { maximumFractionDigits: 2 })}</div>
+            <div class="text-[11px] font-semibold ${up ? 'text-green-600' : 'text-red-500'}">${up ? '▲' : '▼'} ${Math.abs(parseFloat(t.priceChangePercent)).toFixed(2)}%</div>
+          </div>`;
+        }).join('');
+        if (!strip) {
+          strip = document.createElement('div');
+          strip.id = 'binanceStrip';
+          strip.className = 'mb-4';
+          const anchor = host.firstElementChild;
+          if (anchor) host.insertBefore(strip, anchor); else host.appendChild(strip);
+        }
+        strip.innerHTML = `<div class="flex items-center justify-between gap-2 mb-1"><div class="text-xs font-bold text-gray-500">⚡ Live Crypto 24h — Binance</div>${fngHtml}</div><div class="flex gap-2 overflow-x-auto pb-1">${cards}</div>`;
+        strip.dataset.t = String(Date.now());
+      } catch (e) {}
+    }
+
+    function escHtml(s) {
+      return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+    // Live Indian market headlines via Google News RSS (through allorigins CORS proxy)
+    async function fetchMarketHeadlines() {
+      try {
+        const host = document.querySelector('#page-geopolitics .page-front .page-content');
+        if (!host) return;
+        let box = document.getElementById('newsStrip');
+        if (box && Date.now() - (+box.dataset.t || 0) < 10 * 60 * 1000) return;
+        const feed = 'https://news.google.com/rss/search?q=india+stock+market+OR+sensex+OR+nifty+OR+rbi+when:2d&hl=en-IN&gl=IN&ceid=IN:en';
+        const r = await fetch('https://api.allorigins.win/raw?url=' + encodeURIComponent(feed));
+        if (!r.ok) return;
+        const doc = new DOMParser().parseFromString(await r.text(), 'text/xml');
+        const items = Array.from(doc.querySelectorAll('item')).slice(0, 6);
+        if (!items.length) return;
+        const links = items.map(it => {
+          const g = tag => { const el = it.querySelector(tag); return el ? el.textContent : ''; };
+          let t = escHtml(g('title'));
+          const cut = t.lastIndexOf(' - ');
+          if (cut > 25) t = t.slice(0, cut);
+          const l = escHtml(g('link')) || '#';
+          const ts = Date.parse(g('pubDate'));
+          let ago = '';
+          if (!isNaN(ts)) {
+            const m = Math.round((Date.now() - ts) / 60000);
+            ago = m < 1 ? 'just now' : m < 60 ? m + 'm ago' : Math.round(m / 60) + 'h ago';
+          }
+          return `<a href="${l}" target="_blank" rel="noopener" class="block px-3 py-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white/70 dark:bg-gray-800/40 hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+            <div class="text-xs font-medium leading-snug text-gray-800 dark:text-gray-100">${t}</div>
+            <div class="text-[10px] text-gray-400 mt-0.5">${ago} · Google News</div></a>`;
+        }).join('');
+        if (!box) {
+          box = document.createElement('div');
+          box.id = 'newsStrip';
+          box.className = 'mb-4';
+          const anchor = host.firstElementChild;
+          if (anchor) host.insertBefore(box, anchor); else host.appendChild(box);
+        }
+        box.innerHTML = '<div class="text-xs font-bold text-gray-500 mb-1">📰 Live Market Headlines</div><div class="grid gap-1.5">' + links + '</div>';
+        box.dataset.t = String(Date.now());
+      } catch (e) {}
     }
 
     // ============ CRYPTOCURRENCY FUNCTIONS ============
@@ -5182,6 +5304,37 @@
       try { localStorage.setItem('pma_magic', off ? '0' : '1'); } catch (e) {}
     }
 
+    // ₹2000/₹500 note carpet — drifting currency notes behind the content
+    function initNotes() {
+      const layer = document.getElementById('notesLayer');
+      if (!layer || layer.dataset.built === '1') return;
+      layer.dataset.built = '1';
+      for (let i = 0; i < 14; i++) {
+        const n = document.createElement('div');
+        n.className = 'note-fly ' + (i % 2 ? 'note-500' : 'note-2000');
+        const w = 64 + Math.random() * 76;
+        n.style.setProperty('--x', (Math.random() * 94).toFixed(1) + 'vw');
+        n.style.setProperty('--y', (Math.random() * 90).toFixed(1) + 'vh');
+        n.style.width = w.toFixed(0) + 'px';
+        n.style.height = (w * 0.47).toFixed(0) + 'px';
+        n.style.opacity = (0.07 + Math.random() * 0.09).toFixed(2);
+        n.style.setProperty('--dx', (Math.random() * 220 - 110).toFixed(0) + 'px');
+        n.style.setProperty('--dy', (Math.random() * 160 - 80).toFixed(0) + 'px');
+        n.style.setProperty('--dur', (16 + Math.random() * 18).toFixed(1) + 's');
+        n.style.setProperty('--delay', (-Math.random() * 24).toFixed(1) + 's');
+        const inner = document.createElement('div');
+        inner.className = 'note-inner';
+        inner.textContent = i % 2 ? '₹500' : '₹2000';
+        inner.style.fontSize = Math.max(11, w * 0.2).toFixed(0) + 'px';
+        inner.style.setProperty('--sway', (5 + Math.random() * 5).toFixed(1) + 's');
+        inner.style.setProperty('--delay2', (-Math.random() * 6).toFixed(1) + 's');
+        inner.style.setProperty('--r0', (-6 - Math.random() * 6).toFixed(0) + 'deg');
+        inner.style.setProperty('--r1', (4 + Math.random() * 7).toFixed(0) + 'deg');
+        n.appendChild(inner);
+        layer.appendChild(n);
+      }
+    }
+
     // ============ INIT ============
     function dataSourceTip() {
       if (CONFIG.dataProxy) return 'Data: live via your Cloudflare worker — it calls TwelveData (free) with the key hidden, so visitors never see it.';
@@ -5296,14 +5449,14 @@
     // ============ FLIPBOOK PAGE HOOKS ============
     const PAGE_HOOKS = {
       dashboard: () => { try { updateUI(window.lastMarketData || getStableMockData()); } catch (e) {} },
-      geopolitics: () => { try { toggleGeoAuto(); } catch (e) {} try { updateGeoOutlook(); } catch (e) {} },
+      geopolitics: () => { try { toggleGeoAuto(); } catch (e) {} try { updateGeoOutlook(); } catch (e) {} try { fetchMarketHeadlines(); } catch (e) {} },
       risk: () => { try { renderRiskQuestions(); } catch (e) {} },
       momentum: () => { try { renderTopPicks('short'); } catch (e) {} },
       watchlist: () => { try { refreshPersonalWatch(false); } catch (e) {} },
       tracker: () => { try { renderPortfolio(); } catch (e) {} },
       mf: () => { try { renderMFTable(); renderMFPlan(); fetchForex(); } catch (e) {} },
       reits: () => { try { renderReitSection(); } catch (e) {} },
-      crypto: () => { try { renderCryptoExchangesTable(); } catch (e) {} try { fetchCryptoReturns(); } catch (e) {} }
+      crypto: () => { try { renderCryptoExchangesTable(); } catch (e) {} try { fetchCryptoReturns(); } catch (e) {} try { fetchBinanceTickers(); } catch (e) {} }
     };
     function runPageHooks(id) {
       const h = PAGE_HOOKS[id];
@@ -5857,6 +6010,7 @@
       try { applyDarkMode(localStorage.getItem('marketAnalyzerDark') === '1' || (!localStorage.getItem('marketAnalyzerDark') && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches)); } catch (e) {}
       try { applyDataSourceTips(); } catch (e) {}
       try { ensureLockOverlays(); } catch (e) {}
+      try { initNotes(); } catch (e) {}
       try { checkProStatus(false); } catch (e) {}
 
       // Pre-render every page once so all element IDs exist for live updates
