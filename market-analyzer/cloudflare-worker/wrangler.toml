@@ -1,0 +1,25 @@
+name = "premarket-live"
+main = "worker.js"
+compatibility_date = "2026-08-13"
+
+# The TwelveData key should be stored as a SECRET, not here:
+#   wrangler secret put TWELVEDATA_KEY
+# (You can also set it via the dashboard: Settings -> Variables -> Encrypt.)
+
+# Razorpay secrets (also via `wrangler secret put`, or dashboard -> Settings -> Variables -> Encrypt):
+#   RAZORPAY_KEY_ID          public key, e.g. rzp_live_XXXXXX
+#   RAZORPAY_KEY_SECRET      private key
+#   RAZORPAY_WEBHOOK_SECRET  webhook signing secret (from the dashboard)
+#   RAZORPAY_PLAN_ID         the subscription plan ID, e.g. plan_XXXXXX
+#
+#   wrangler secret put RAZORPAY_KEY_ID
+#   wrangler secret put RAZORPAY_KEY_SECRET
+#   wrangler secret put RAZORPAY_WEBHOOK_SECRET
+#   wrangler secret put RAZORPAY_PLAN_ID
+
+# Pro-subscriber records are stored in a KV namespace. Create it once:
+#   wrangler kv namespace create PREMIUM
+# then paste the returned id below.
+[[kv_namespaces]]
+binding = "PREMIUM"
+id = "ab3344f04de347e6ae3fea90750b70c7"

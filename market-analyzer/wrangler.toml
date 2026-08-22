@@ -1,0 +1,9 @@
+# Cloudflare Pages config for the Pre-Market Analyzer static site.
+# Deploy the static app with:  ./deploy.sh
+# (The live-data proxy worker lives in cloudflare-worker/ — deploy it separately.)
+
+name = "premarket-analyzer"
+compatibility_date = "2026-08-13"
+
+# Static site build output (created by build.sh).
+pages_build_output_dir = "./public"

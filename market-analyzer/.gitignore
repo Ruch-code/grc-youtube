@@ -1,0 +1,9 @@
+# Generated build output (run ./build.sh to recreate)
+public/
+
+# Wrangler local state
+.wrangler/
+
+.DS_Store
+.DS_Store
+.wrangler/

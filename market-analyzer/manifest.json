@@ -1,0 +1,45 @@
+{
+  "name": "Pre-Market Analyzer & Portfolio Planner",
+  "short_name": "PreMarket",
+  "description": "11-step portfolio planner: risk profile, asset allocation, live position checks, goal planning, war/metals context, horizon picks, mutual funds, fees, capital sizing, intraday exits & full portfolio tracking.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f9fafb",
+  "theme_color": "#1e3a8a",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "assets/me.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "assets/me.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "assets/me.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": ["finance", "productivity"],
+  "shortcuts": [
+    {
+      "name": "Refresh Data",
+      "short_name": "Refresh",
+      "description": "Fetch latest pre-market indicators",
+      "url": "/?refresh=1"
+    },
+    {
+      "name": "Portfolio Check",
+      "short_name": "Portfolio",
+      "description": "Analyze current positions",
+      "url": "/?portfolio=1"
+    }
+  ]
+}
