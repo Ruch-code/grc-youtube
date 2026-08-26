@@ -3815,7 +3815,13 @@
     }
 
     // ══════════ 🤖 PMA ANALYST CHATBOT — KPI-aware stock Q&A ══════════
-    let _IDX_LAST = null, _GLOBAL_LAST = null;
+    let _IDX_LAST = null, _GLOBAL_LAST = null, _botLast = null;
+    const BOT_WEALTH_LINES = [
+      '💡 Wealth rule: losses hurt twice — −20% needs +25% just to break even. Cutting losers early IS profit.',
+      '💡 Wealth rule: time in quality compounds; churn doesn\'t. Every trade pays fees+tax — hold winners longer than feels natural.',
+      '💡 Wealth rule: position size so no single stock can dent your year. Survive first, compound second.',
+      '💡 Wealth rule: an un-acted stop-loss is a wish, not a plan. Decide levels before you buy.'
+    ];
     function botLiveQuote(sym) {
       const k = String(sym).toUpperCase();
       return (async () => {
@@ -3898,6 +3904,8 @@
     async function botAnswer(q) {
       const syms = botExtractSymbols(q);
       const l = q.toLowerCase();
+      const FU = /^(why\b|explain|simple|eli5|what if|downside|risk|when (should|do|to)? ?(i )?(sell|exit)|exit plan|\bsell when\b|how much|position size|\bqty\b|quantity|profit target|target\b|hold till|how long)/i;
+      if (!syms.length && _botLast && FU.test(q.trim())) return botFollowUp(q);
       if (!syms.length) {
         if (/alert/.test(l)) return '🔔 To arm an alert, open <b>Position Analyzer</b>, analyze your stock, and use the 🔔 Agentic Watch card — pick Sell-zone ≥ (book profit) or Buy/Stop ≤ (protect capital). The app checks every 60 seconds and notifies you.';
         if (/market|tomorrow|outlook|nifty|today|global/.test(l)) {
@@ -3971,11 +3979,67 @@
         Support ₹${d.support ? d.support.toFixed(0) : '—'} · Resistance ₹${d.resistance ? d.resistance.toFixed(0) : '—'} · 52W ₹${d.w52 ? d.w52.l.toFixed(0) + '–' + d.w52.h.toFixed(0) : '—'}`;
       }
       // default: full point-in-time verdict
-      return `${v.warn}<b>${v.act[0]}</b> · ${v.sym} ${v.live ? '⚡' : '⏱'} ₹${v.price ? v.price.toFixed(1) : '—'} <span class="text-[10px] opacity-60">confidence ${v.score}/100 · ${new Date().toLocaleTimeString('en-IN')}</span>
+      const ans = `${v.warn}<b>${v.act[0]}</b> · ${v.sym} ${v.live ? '⚡' : '⏱'} ₹${v.price ? v.price.toFixed(1) : '—'} <span class="text-[10px] opacity-60">confidence ${v.score}/100 · ${new Date().toLocaleTimeString('en-IN')}</span>
       <div class="text-xs mt-1">${v.pts.slice(0, 4).map(p => '• ' + p).join('<br>')}${v.risks.length ? '<br>' + v.risks.slice(0, 3).map(r => '⚠️ ' + r).join('<br>') : ''}</div>
       ${v.sugHi != null ? `<div class="text-[11px] mt-1 opacity-80">Zones: stop-guard ≤ ₹${v.sugLo.toLocaleString('en-IN')} · book-profit ≥ ₹${v.sugHi.toLocaleString('en-IN')} ${v.pU != null ? `· 30-session odds: ${v.pU}% ↑res / ${v.pD}% ↓sup (σ-model)` : ''}</div>` : '<div class="text-[11px] mt-1 opacity-70">Zones need price history — unavailable right now.</div>'}
-      <div class="text-[10px] mt-1 opacity-60">🧮 screening hint, not investment advice — verify latest quarter.</div>
+      <div class="text-[10px] mt-1 opacity-60">🧮 screening hint, not investment advice — verify latest quarter. Follow-ups I can take: <i>"why?"</i>, <i>"what if it falls?"</i>, <i>"how much should I buy?"</i>, <i>"when to exit?"</i></div>
       <div class="flex gap-2 mt-1"><button onclick="document.getElementById('chatClose').click();loadSaved('${v.sym}')" class="underline text-[11px] font-semibold">Full analysis →</button> <button onclick="document.getElementById('chatInput').value='${v.sym} ';document.getElementById('chatSend').focus()" class="underline text-[11px]">compare…</button></div>`;
+      _botLast = { sym: s0, v };
+      return ans;
+    }
+
+    async function botFollowUp(q) {
+      const { sym, v } = _botLast;
+      const l = q.toLowerCase();
+      const price = v.price || 0;
+      const stop = v.sugLo || (price * 0.92);
+      const capM = q.match(/\b(\d{4,9})\b/);
+      const cap = capM ? parseFloat(capM[1]) : 100000;
+      const wealth = BOT_WEALTH_LINES[Math.floor(Math.random() * BOT_WEALTH_LINES.length)];
+      if (/simple|eli5/.test(l)) {
+        return `<b>${sym}, in plain words:</b><br>
+        Think of it as a shop you're partly buying.<br>
+        • Business quality: ${v.fp && v.fp.roce != null ? `it earns <b>${v.fp.roce.toFixed(0)}%</b> back on money it deploys — ${v.fp.roce >= 20 ? 'excellent shopkeeper' : v.fp.roce >= 12 ? 'decent' : 'weak'}` : 'not enough stored data'}.<br>
+        • Price mood right now: ${v.dd && v.dd.rsi != null ? `buyers ${v.dd.rsi > 70 ? 'over-excited (RSI ' + v.dd.rsi.toFixed(0) + ')' : v.dd.rsi < 30 ? 'gloomy (RSI ' + v.dd.rsi.toFixed(0) + ') — maybe a bargain' : 'calm (RSI ' + v.dd.rsi.toFixed(0) + ')'}` : 'unknown'}.<br>
+        • My call: <b>${v.act[0]}</b>.<br>${wealth}`;
+      }
+      if (/why|explain|reason/.test(l)) {
+        return `<b>Why <span style="color:${v.score >= 58 ? '#16a34a' : v.score >= 45 ? '#d97706' : '#dc2626'}">${v.act[0]}</span> for ${sym}? (score ${v.score}/100)</b>
+        <div class="text-xs mt-1">${v.pts.map(p => '• ' + p).join('<br>')}${v.risks.length ? '<br>' + v.risks.map(r => '<br>⚠️ ' + r + ' — this is what keeps the score down').join('') : ''}</div>
+        <div class="text-xs mt-1.5">Each ✅ adds points, each ⚠️ subtracts; the total decides the label. It's arithmetic on evidence, not a feeling.</div>${wealth}`;
+      }
+      if (/what if|fall|drop|downside|risk/.test(l)) {
+        const lossPct = price ? ((price - stop) / price * 100) : null;
+        const riskPerShare = price - stop;
+        const qty2pct = riskPerShare > 0 ? Math.max(0, Math.floor(cap * 0.02 / riskPerShare)) : 0;
+        return `<b>🛡️ If ${sym} falls — your pre-planned defence:</b>
+        <div class="text-xs mt-1">
+        • Stop-guard sits at <b>₹${stop.toLocaleString('en-IN')}</b>${lossPct != null ? ` (${lossPct.toFixed(1)}% below now)` : ''}. That's where the thesis is wrong, not just the mood.<br>
+        • On ₹${cap.toLocaleString('en-IN')} capital with the 2%-risk rule: buy ≤ <b>${qty2pct}</b> shares so a full stop-hit costs ~₹${Math.round(qty2pct * Math.max(0, riskPerShare)).toLocaleString('en-IN')} (2% of capital) — survivable by design.<br>
+        • Gap risk: Indian smallcaps can open locked at circuit — that's why size stays small and stops aren't optional.<br>
+        • Don't average a falling D-category stock; add only above structure, never into the hole.</div>${wealth}`;
+      }
+      if (/how much|position|\bqty\b|quantity|buy.*amount/.test(l)) {
+        const posCap = cap * 0.05;
+        const maxQty = price ? Math.floor(posCap / price) : 0;
+        const tranches = price ? [price, price * 0.97, v.sugLo || price * 0.93].map(x => '₹' + x.toFixed(0)).join(' → ') : '—';
+        return `<b>⚖️ Sizing ${sym} sensibly:</b>
+        <div class="text-xs mt-1">
+        • Single-stock cap: <b>5%</b> of portfolio = ₹${posCap.toLocaleString('en-IN')} ≈ <b>${maxQty}</b> shares at ₹${price ? price.toFixed(1) : '—'}.<br>
+        • Enter in 3 tranches near support, e.g. ${tranches !== '—' ? tranches : '(needs price feed)'} — averages you better than one lump bet.<br>
+        • Risk-check: keep the distance-to-stop cost under 2% of total capital.<br>
+        • Prefer monthly SIP-style adds over lump sums while learning — cash flow beats timing.</div>${wealth}`;
+      }
+      if (/sell|exit|hold till|how long|profit target|target/.test(l)) {
+        return `<b>🚪 Exit plan for ${sym} (call: ${v.act[0]}):</b>
+        <div class="text-xs mt-1">
+        ${v.sugHi != null ? `• Hold comfortably between <b>₹${(v.sugLo || 0).toLocaleString('en-IN')}–₹${v.sugHi.toLocaleString('en-IN')}</b>; ${v.pU != null ? `odds of touching profit zone in 30 sessions ≈ ${v.pU}%` : ''}.<br>` : ''}
+        • Book <b>partial</b> (⅓ to ½) at target — let the rest ride winners; full exits on quality stocks are how people miss decade compounding.<br>
+        • Hard-sell below <b>₹${(v.sugLo || 0).toLocaleString('en-IN')}</b> or on thesis breaks (profit decline ×2 quarters, promoter pledge, auditor flags).<br>
+        ${v.dd && v.dd.dma200 && price ? `• Trend check: currently ${price >= v.dd.dma200 ? '<b style="color:#16a34a">above</b>' : '<b style="color:#dc2626">below</b>'} 200-DMA — ${price >= v.dd.dma200 ? 'holding favoured.' : 'reduce until it reclaims.'}` : ''}
+        </div>${wealth}`;
+      }
+      return `<b>${sym} recap:</b> ${v.act[0]} · confidence ${v.score}/100. Ask me <i>"why?"</i>, <i>"what if it falls?"</i>, <i>"how much to buy?"</i>, or <i>"when to exit?"</i> — I'll explain step by step.`;
     }
 
     function initBot() {
@@ -4039,7 +4103,7 @@
       };
       send.onclick = go;
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-      push('bot', '👋 I factor <b>live price, RSI/DMA trend, filings KPIs, ownership split & global cues</b> — and tell you what\'s actual ⚡ vs filing 📄 vs model 🧮. Ask away!');
+      push('bot', '👋 I factor <b>live price, RSI/DMA trend, filings KPIs, ownership split & global cues</b> — and tell you what\'s actual ⚡ vs filing 📄 vs model 🧮. Ask about any stock, then follow up: <i>"why?"</i>, <i>"what if it falls?"</i>, <i>"how much should I buy with 500000?"</i>, <i>"when to exit?"</i>. My job: grow wealth while protecting capital.');
     }
     try { initBot(); } catch (e) {}
 
