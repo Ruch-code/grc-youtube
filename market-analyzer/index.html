@@ -3815,13 +3815,68 @@
     }
 
     // ══════════ 🤖 PMA ANALYST CHATBOT — KPI-aware stock Q&A ══════════
-    let _IDX_LAST = null, _GLOBAL_LAST = null, _botLast = null;
+    let _IDX_LAST = null, _GLOBAL_LAST = null, _botLast = null, _insightId = 0;
     const BOT_WEALTH_LINES = [
       '💡 Wealth rule: losses hurt twice — −20% needs +25% just to break even. Cutting losers early IS profit.',
       '💡 Wealth rule: time in quality compounds; churn doesn\'t. Every trade pays fees+tax — hold winners longer than feels natural.',
       '💡 Wealth rule: position size so no single stock can dent your year. Survive first, compound second.',
       '💡 Wealth rule: an un-acted stop-loss is a wish, not a plan. Decide levels before you buy.'
     ];
+    function getHistory() { try { return JSON.parse(localStorage.getItem('pma_chat_history') || '[]'); } catch (e) { return []; } }
+    function saveHistory(h) { localStorage.setItem('pma_chat_history', JSON.stringify(h.slice(-200))); }
+    function rateInsight(id, rating) {
+      const h = getHistory(), e = h.find(x => x.id === id);
+      if (e) { e.rating = rating === 'up' ? 1 : -1; saveHistory(h); }
+      showToast(rating === 'up' ? '👍 Helpful — calibrates future calls' : '👎 Logged — trying to improve');
+    }
+    function setAction(id, action, sym) {
+      const h = getHistory(), e = h.find(x => x.id === id);
+      if (e) { e.action = action; e.actionDate = new Date().toISOString(); saveHistory(h); }
+      showToast(action === 'bought' ? `📝 ${sym} marked Bought — I'll check back on this call` :
+        action === 'sold' ? `📝 ${sym} marked Sold — remember to journal entry/exit` :
+          `👁️ ${sym} added to your watch list`);
+    }
+    function ratingWidget(id, sym) {
+      return `<div class="flex flex-wrap items-center gap-1 mt-2 pt-2 border-t border-gray-200/50 dark:border-gray-700/50">
+        <span class="text-[10px] text-gray-400">Rate this call:</span>
+        <button onclick="rateInsight(${id},'up')" class="text-sm hover:scale-125 transition-transform" title="helpful">👍</button>
+        <button onclick="rateInsight(${id},'down')" class="text-sm hover:scale-125 transition-transform" title="not helpful">👎</button>
+        <span class="text-[10px] text-gray-400 ml-1">Action:</span>
+        <button onclick="setAction(${id},'bought','${sym}')" class="text-[10px] px-1.5 py-0.5 rounded-full bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300 hover:scale-105">Bought ✓</button>
+        <button onclick="setAction(${id},'sold','${sym}')" class="text-[10px] px-1.5 py-0.5 rounded-full bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 hover:scale-105">Sold</button>
+        <button onclick="setAction(${id},'watching','${sym}')" class="text-[10px] px-1.5 py-0.5 rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:scale-105">👁 Watching</button>
+      </div>`;
+    }
+    async function botCheckPick(sym) {
+      const hist = getHistory().filter(h => h.sym === sym);
+      if (!hist.length) return null;
+      const latest = hist.sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      const cur = await bestPriceFor(sym).catch(() => null);
+      const chg = latest.price && cur ? ((cur / latest.price - 1) * 100) : null;
+      const wealth = BOT_WEALTH_LINES[Math.floor(Math.random() * BOT_WEALTH_LINES.length)];
+      let outcome = '⏳ not yet acted';
+      if (latest.action === 'bought') outcome = chg != null ? (chg > 3 ? '✅ call played out — up ' + chg.toFixed(1) + '%' : chg > 0 ? '📈 slightly green — follow the hold plan' : chg < -5 ? '🔴 under pressure — check your stop & thesis, don\'t hold blindly' : '➖ near entry — trust your plan.') : '⚠️ can\'t fetch live to judge';
+      else if (latest.action === 'sold') outcome = chg != null ? (latest.verdict.includes('BUY') && chg < 0 ? '✅ good sale — stock dropped since' : chg > 0 ? '📈 rose after you sold — thesis may have been early' : '📊 in line.') : '⚠️ price feed unavailable';
+      else outcome = chg != null ? (chg > 3 ? 'It\'s up +' + chg.toFixed(1) + '% since — revisit the plan. No rush.' : chg < -3 ? 'Down ' + chg.toFixed(1) + '% since — if thesis holds, plan entry at support; if not, walk away.' : 'Near your entry price — review the plan before acting.') : '⚠️ price feed unavailable';
+      return `📊 <b>${sym}</b> since ${latest.date.slice(0, 10)} (${latest.verdict}): ${cur ? '₹' + cur.toFixed(1) + (chg != null ? ` <span class="${chg >= 0 ? 'text-green-600' : 'text-red-500'}">(${chg >= 0 ? '+' : ''}${chg.toFixed(1)}% from ₹${latest.price.toFixed(1)})</span>` : '') : '⚠️ live feed error'} · Your action: <b>${latest.action || 'unmarked'}</b> · ${outcome} ${wealth}`;
+    }
+    async function botTrackPicks() {
+      const hist = getHistory();
+      if (!hist.length) return 'No tracked insights yet — after any stock analysis, tap 👍/👎 and mark Bought/Sold/Watching. Over time this builds your personal accuracy record.';
+      const seen = new Map();
+      hist.forEach(h => { if (!seen.has(h.sym) || new Date(seen.get(h.sym).date) < new Date(h.date)) seen.set(h.sym, h); });
+      const rows = [];
+      for (const [sym, h] of [...seen.entries()].slice(0, 12)) {
+        const cur = await bestPriceFor(sym).catch(() => null);
+        const chg = h.price && cur ? ((cur / h.price - 1) * 100) : null;
+        rows.push({ sym, v: h.verdict.slice(0, 14), p: h.price, cur, chg, a: h.action || '—', r: h.rating > 0 ? '👍' : h.rating < 0 ? '👎' : '—' });
+      }
+      const correct = rows.filter(r => (r.v.includes('BUY') && r.chg != null && r.chg > 0) || (r.v.includes('AVOID') && r.chg != null && r.chg < 0)).length;
+      let s = '<b>📊 Your tracked picks</b><div class="overflow-x-auto"><table class="text-[11px] w-full"><thead><tr class="border-b border-gray-200 dark:border-gray-700"><th class="text-left pr-2"></th><th class="text-left pr-2">Stock</th><th class="text-left pr-2">Call</th><th class="text-left pr-2">Entry</th><th class="text-left pr-2">Now</th><th class="text-left pr-2">Chg</th><th class="text-left pr-2">Action</th></tr></thead><tbody>';
+      rows.forEach(r => s += `<tr class="border-b border-gray-100 dark:border-gray-700/50"><td>${r.r}</td><td class="font-semibold">${r.sym}</td><td>${r.v}</td><td>₹${r.p ? r.p.toFixed(0) : '—'}</td><td>${r.cur ? '₹' + r.cur.toFixed(0) : '—'}</td><td class="${r.chg != null ? r.chg >= 0 ? 'text-green-600' : 'text-red-500' : ''}">${r.chg != null ? (r.chg >= 0 ? '+' : '') + r.chg.toFixed(1) + '%' : '—'}</td><td>${r.a}</td></tr>`);
+      s += `</tbody></table></div><div class="mt-1 text-[11px]">Directional accuracy: <b class="${(correct / Math.max(rows.length, 1) * 100) >= 60 ? 'text-green-600' : 'text-red-500'}">${rows.length ? Math.round(correct / rows.length * 100) + '% (' + correct + '/' + rows.length + ')' : '—'}</b>. Rate more picks to sharpen the record.</div>`;
+      return s;
+    }
     function botLiveQuote(sym) {
       const k = String(sym).toUpperCase();
       return (async () => {
@@ -3906,6 +3961,11 @@
       const l = q.toLowerCase();
       const FU = /^(why\b|explain|simple|eli5|what if|downside|risk|when (should|do|to)? ?(i )?(sell|exit)|exit plan|\bsell when\b|how much|position size|\bqty\b|quantity|profit target|target\b|hold till|how long)/i;
       if (!syms.length && _botLast && FU.test(q.trim())) return botFollowUp(q);
+      if (/track.*pick|my picks|accuracy|how am i doing|track my/.test(l)) return botTrackPicks();
+      if (syms.length === 1 && /how did|check result|revisit|update|track/.test(l)) {
+        const r = await botCheckPick(syms[0]);
+        if (r) return r;
+      }
       if (!syms.length) {
         if (/alert/.test(l)) return '🔔 To arm an alert, open <b>Position Analyzer</b>, analyze your stock, and use the 🔔 Agentic Watch card — pick Sell-zone ≥ (book profit) or Buy/Stop ≤ (protect capital). The app checks every 60 seconds and notifies you.';
         if (/market|tomorrow|outlook|nifty|today|global/.test(l)) {
@@ -3979,11 +4039,16 @@
         Support ₹${d.support ? d.support.toFixed(0) : '—'} · Resistance ₹${d.resistance ? d.resistance.toFixed(0) : '—'} · 52W ₹${d.w52 ? d.w52.l.toFixed(0) + '–' + d.w52.h.toFixed(0) : '—'}`;
       }
       // default: full point-in-time verdict
+      const iid = ++_insightId;
+      const hist = getHistory();
+      hist.push({ id: iid, sym: s0, date: new Date().toISOString(), verdict: v.act[0], confidence: v.score, price: v.price, action: null, rating: 0, actionDate: null });
+      saveHistory(hist);
       const ans = `${v.warn}<b>${v.act[0]}</b> · ${v.sym} ${v.live ? '⚡' : '⏱'} ₹${v.price ? v.price.toFixed(1) : '—'} <span class="text-[10px] opacity-60">confidence ${v.score}/100 · ${new Date().toLocaleTimeString('en-IN')}</span>
       <div class="text-xs mt-1">${v.pts.slice(0, 4).map(p => '• ' + p).join('<br>')}${v.risks.length ? '<br>' + v.risks.slice(0, 3).map(r => '⚠️ ' + r).join('<br>') : ''}</div>
       ${v.sugHi != null ? `<div class="text-[11px] mt-1 opacity-80">Zones: stop-guard ≤ ₹${v.sugLo.toLocaleString('en-IN')} · book-profit ≥ ₹${v.sugHi.toLocaleString('en-IN')} ${v.pU != null ? `· 30-session odds: ${v.pU}% ↑res / ${v.pD}% ↓sup (σ-model)` : ''}</div>` : '<div class="text-[11px] mt-1 opacity-70">Zones need price history — unavailable right now.</div>'}
-      <div class="text-[10px] mt-1 opacity-60">🧮 screening hint, not investment advice — verify latest quarter. Follow-ups I can take: <i>"why?"</i>, <i>"what if it falls?"</i>, <i>"how much should I buy?"</i>, <i>"when to exit?"</i></div>
-      <div class="flex gap-2 mt-1"><button onclick="document.getElementById('chatClose').click();loadSaved('${v.sym}')" class="underline text-[11px] font-semibold">Full analysis →</button> <button onclick="document.getElementById('chatInput').value='${v.sym} ';document.getElementById('chatSend').focus()" class="underline text-[11px]">compare…</button></div>`;
+      <div class="text-[10px] mt-1 opacity-60">🧮 screening hint, not investment advice — verify latest quarter. Follow-ups: <i>"why?"</i>, <i>"what if it falls?"</i>, <i>"how much should I buy?"</i>, <i>"when to exit?"</i>, <i>"track my picks"</i></div>
+      <div class="flex gap-2 mt-1"><button onclick="document.getElementById('chatClose').click();loadSaved('${v.sym}')" class="underline text-[11px] font-semibold">Full analysis →</button> <button onclick="document.getElementById('chatInput').value='${v.sym} ';document.getElementById('chatSend').focus()" class="underline text-[11px]">compare…</button></div>
+      ${ratingWidget(iid, s0)}`;
       _botLast = { sym: s0, v };
       return ans;
     }
@@ -4103,7 +4168,23 @@
       };
       send.onclick = go;
       inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-      push('bot', '👋 I factor <b>live price, RSI/DMA trend, filings KPIs, ownership split & global cues</b> — and tell you what\'s actual ⚡ vs filing 📄 vs model 🧮. Ask about any stock, then follow up: <i>"why?"</i>, <i>"what if it falls?"</i>, <i>"how much should I buy with 500000?"</i>, <i>"when to exit?"</i>. My job: grow wealth while protecting capital.');
+      push('bot', '👋 I factor <b>live price, RSI/DMA trend, filings KPIs, ownership split & global cues</b> — and tell you what\'s actual ⚡ vs filing 📄 vs model 🧮. Ask about any stock, then follow up: <i>"why?"</i>, <i>"what if it falls?"</i>, <i>"how much should I buy with 500000?"</i>, <i>"when to exit?"</i>. Track your picks: tap 👍/👎 + mark Bought/Sold to build your accuracy record over time.');
+      (async () => {
+        try {
+          const hist = getHistory();
+          const recent = hist.filter(h => h.action === 'bought' || h.action === 'watching').sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 3);
+          if (recent.length) {
+            const days = await Promise.all(recent.map(async h => {
+              const cur = await bestPriceFor(h.sym).catch(() => null);
+              const chg = h.price && cur ? ((cur / h.price - 1) * 100) : null;
+              const age = Math.round((Date.now() - new Date(h.date)) / 86400000);
+              return chg != null ? `<b>${h.sym}</b> ₹${h.price.toFixed(0)} → ₹${cur.toFixed(0)} <span class="${chg >= 0 ? 'text-green-600' : 'text-red-500'}">(${chg >= 0 ? '+' : ''}${chg.toFixed(1)}%)</span> ${age}d ago (${h.action})` : null;
+            }));
+            const lines = days.filter(Boolean);
+            if (lines.length) push('bot', `📊 <b>Pick updates since we last spoke:</b><br>${lines.join('<br>')}<br><span class="text-[10px] opacity-60">Ask "how did X do?" for a full check-in.</span>`);
+          }
+        } catch (e) {}
+      })();
     }
     try { initBot(); } catch (e) {}
 
