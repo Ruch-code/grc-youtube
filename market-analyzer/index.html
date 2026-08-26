@@ -3791,6 +3791,12 @@
       };
       const [nifty, nasdaq, crude, gold, dxy] = await Promise.all([grab('^NSEI'), grab('^IXIC'), grab('CL=F'), grab('GC=F'), grab('DX-Y.NYB')]);
       const data = { nifty, nasdaq, crude, gold, dxy };
+      if (nifty == null && nasdaq == null && crude == null && gold == null && dxy == null) {
+        if (_GLOBAL_LAST) return { ..._GLOBAL_LAST, stale: true };
+        _deepCache._GLOBAL = { ts: Date.now(), data };
+        return data;
+      }
+      _GLOBAL_LAST = data;
       _deepCache._GLOBAL = { ts: Date.now(), data };
       return data;
     }
@@ -3807,6 +3813,235 @@
       const vol = info.volatility || 0.02;
       return (bp < 500 || vol > 0.03) ? 10 : 20;
     }
+
+    // ══════════ 🤖 PMA ANALYST CHATBOT — KPI-aware stock Q&A ══════════
+    let _IDX_LAST = null, _GLOBAL_LAST = null;
+    function botLiveQuote(sym) {
+      const k = String(sym).toUpperCase();
+      return (async () => {
+        try { const q = await fetchLivePrice(k); if (q && q.price && q.price !== 100) return { price: q.price, live: true }; } catch (e) {}
+        const cache = _deepCache[k];
+        const wasFresh = cache && Date.now() - cache.ts < 90000;
+        let dd = null; try { dd = await fetchStockDeepData(k); } catch (e) {}
+        if (dd && dd.price) return { price: dd.price, live: !!wasFresh, cached: !wasFresh };
+        return null;
+      })();
+    }
+
+    const _BOT_STOP = new Set(['BUY', 'SELL', 'HOLD', 'PRICE', 'TARGET', 'STOCK', 'SHARE', 'NSE', 'BSE', 'RSI', 'PE', 'ROE', 'ROCE', 'EPS', 'DE', 'NIFTY', 'BANK', 'THE', 'IS', 'AT', 'OF', 'MY', 'DO', 'I', 'A', 'AN', 'TO', 'ON', 'IT', 'VS', 'OR', 'AND', 'ME', 'NOW', 'TODAY', 'TOMORROW', 'OUTLOOK', 'MARKET', 'ALERT', 'SET', 'SHOULD', 'CAN', 'WHAT', 'HOW', 'WHY', 'WHEN', 'GOOD', 'BAD']);
+    const _BOT_NAMES = { 'reliance': 'RELIANCE', 'ril': 'RELIANCE', 'tcs': 'TCS', 'infosys': 'INFY', 'infy': 'INFY', 'hdfc bank': 'HDFCBANK', 'hdfcbank': 'HDFCBANK', 'icici': 'ICICIBANK', 'sbibank': 'SBIN', 'sbi': 'SBIN', 'state bank': 'SBIN', 'larsen': 'LT', 'l&t': 'LT', 'bajaj finance': 'BAJFINANCE', 'hindustan unilever': 'HINDUNILVR', 'hul': 'HINDUNILVR', 'itc': 'ITC', 'wipro': 'WIPRO', 'axis bank': 'AXISBANK', 'kotak': 'KOTAKBANK', 'maruti': 'MARUTI', 'tata motors': 'TATAMOTORS', 'tata steel': 'TATASTEEL', 'ongc': 'ONGC', 'coal india': 'COALINDIA' };
+    function botExtractSymbols(q) {
+      const found = [];
+      const ql = q.toLowerCase();
+      Object.entries(_BOT_NAMES).forEach(([k, s]) => { if (ql.includes(k)) found.push(s); });
+      const caps = q.match(/\b[A-Z][A-Z0-9&\.]{1,11}\b/g) || [];
+      caps.forEach(c => {
+        const cu = c.replace(/\.$/, '');
+        if (!_BOT_STOP.has(cu) && !found.includes(cu) && (FUNDAMENTAL_PICKS.some(f => f.symbol === cu) || findStock(cu))) found.push(cu);
+      });
+      return [...new Set(found)].slice(0, 2);
+    }
+    async function botVerdict(sym) {
+      const fp = FUNDAMENTAL_PICKS.find(f => f.symbol === sym) || null;
+      let dd = null; try { dd = await fetchStockDeepData(sym); } catch (e) {}
+      const q = await botLiveQuote(sym);
+      if (!dd && !fp && !q) return null;
+      const price = q ? q.price : (dd ? dd.price : null);
+      let warn = '';
+      if (!q) {
+        warn = '<div class="my-1 px-2 py-1 rounded-lg text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">⚠️ Error fetching live data — this read is based on past trends' + (dd ? ' & recent price history' : '') + (fp ? ' + stored FY24-25 filings' : '') + ', not the current tape.</div>';
+      } else if (!q.live) {
+        warn = '<div class="my-1 px-2 py-1 rounded-lg text-[11px] bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300">⏱ Quote feed slow — showing latest available (' + (q.cached ? 'cached ~minutes old' : 'delayed') + ') data.</div>';
+      }
+      const prof = abcdProfile(sym);
+      const pts = [], risks = [];
+      let score = 50;
+      if (dd && dd.dma200 && price) {
+        const d = ((price / dd.dma200 - 1) * 100);
+        if (d > 2) { score += 12; pts.push(`⚡ Uptrend: ${d.toFixed(1)}% above 200-DMA`); }
+        else if (d < -2) { score -= 15; risks.push(`${Math.abs(d).toFixed(0)}% below 200-DMA — primary downtrend`); }
+        else pts.push('⚡ Sideways around 200-DMA — range-bound');
+      }
+      if (dd && dd.rsi != null && price) {
+        if (dd.rsi > 70) { score -= 8; risks.push(`RSI ${dd.rsi.toFixed(0)} overbought`); }
+        else if (dd.rsi < 30) { score += 8; pts.push(`RSI ${dd.rsi.toFixed(0)} oversold — contrarian zone`); }
+        else pts.push(`Momentum neutral (RSI ${dd.rsi.toFixed(0)})`);
+      }
+      if (dd && dd.w52 && price) {
+        const pos = ((price - dd.w52.l) / (dd.w52.h - dd.w52.l)) * 100;
+        if (pos > 92) risks.push('within 8% of 52W high — froth risk');
+        else if (pos < 12) pts.push('near 52W low — deep value territory IF business intact');
+      }
+      if (dd && dd.support) pts.push(`${price ? '⚡' : ''} Structure: support ₹${dd.support.toFixed(0)} / resistance ₹${dd.resistance ? dd.resistance.toFixed(0) : '—'}`);
+      if (fp) {
+        if ((fp.roce || 0) >= 20) { score += 12; pts.push(`📄 Quality: ROCE ${fp.roce.toFixed(0)}%, ROE ${fp.roe || '—'}%`); }
+        else if ((fp.roce || 0) > 0 && fp.roce < 12) { score -= 8; risks.push(`weak capital efficiency (ROCE ${fp.roce.toFixed(0)}%)`); }
+        if ((fp.profitCAGR3Y || 0) >= 15) { score += 10; pts.push(`📄 Compounding: profit CAGR ${fp.profitCAGR3Y.toFixed(0)}%`); }
+        else if (fp.salesCAGR3Y != null && fp.profitCAGR3Y != null && fp.profitCAGR3Y < fp.salesCAGR3Y) { score -= 6; risks.push('margin squeeze — profits lag sales'); }
+        if ((fp.peRatio || 99) > 45) risks.push(`expensive at PE ${fp.peRatio.toFixed(0)}x`);
+        else if ((fp.peRatio || 99) < 22 && (fp.roe || 0) > 15) { score += 6; pts.push(`📄 Reasonable valuation: PE ${fp.peRatio.toFixed(1)}x for ${(fp.roe || 0).toFixed(0)}% ROE`); }
+        if (fp.promoterHolding != null) {
+          if (fp.promoterHolding >= 55) pts.push(`📄 Promoters hold ${fp.promoterHolding.toFixed(0)}% — strong alignment`);
+          else { score -= 6; risks.push(`low promoter skin (${fp.promoterHolding.toFixed(0)}%)`); }
+        }
+        if ((fp.debtToEquity || 0) > 1) risks.push(`leverage D/E ${fp.debtToEquity.toFixed(2)}`);
+      } else if (!dd) { /* nothing at all */ } else pts.push('📄 Filings snapshot not tracked — verdict leans on history only');
+      score = Math.max(5, Math.min(95, score));
+      const act = score >= 72 ? ['🟢 BUY / ACCUMULATE', 'good'] : score >= 58 ? ['🟢 ACCUMULATE ON DIPS', 'ok'] : score >= 45 ? ['🟡 HOLD / WATCH', 'warn'] : score >= 30 ? ['🟠 REDUCE ON STRENGTH', 'warn'] : ['🔴 AVOID / EXIT', 'bad'];
+      const base = price || (dd ? (dd.bandHigh + dd.bandLow) / 2 : null);
+      const sugLo = base ? Math.round(dd && dd.support ? dd.support : base * 0.93) : null;
+      const sugHi = base ? Math.round(dd && dd.resistance ? dd.resistance : base * 1.07) : null;
+      const pU = base ? touchProb(base, sugHi, dd.vol30, 30) : null;
+      const pD = base ? touchProb(base, sugLo, dd.vol30, 30) : null;
+      return { sym, price, live: q ? q.live : false, warn, dd, fp, prof, pts, risks, act, score, sugLo, sugHi, pU, pD };
+    }
+    async function botAnswer(q) {
+      const syms = botExtractSymbols(q);
+      const l = q.toLowerCase();
+      if (!syms.length) {
+        if (/alert/.test(l)) return '🔔 To arm an alert, open <b>Position Analyzer</b>, analyze your stock, and use the 🔔 Agentic Watch card — pick Sell-zone ≥ (book profit) or Buy/Stop ≤ (protect capital). The app checks every 60 seconds and notifies you.';
+        if (/market|tomorrow|outlook|nifty|today|global/.test(l)) {
+          const gp = await getGlobalPulse().catch(() => null);
+          const idx = await getIndexDayStats().catch(() => null);
+          if (!gp && !idx) return '<div class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300">⚠️ Error fetching live market data right now.</div> No stale snapshot available either — please retry in a minute.';
+          const f = (v, suf) => v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%';
+          let s = (gp && gp.stale) || (idx && idx.stale)
+            ? '<div class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 mb-1">⚠️ Live feed error — showing last known readings.</div>'
+            : '';
+          s += '<b>🌍 Point-in-time market read</b><br>';
+          if (idx && idx.n50) s += `🇮🇳 NIFTY 50 ${f(idx.n50.chg)} today · BANK ${idx.bnk ? f(idx.bnk.chg) : '—'}<br>`;
+          else s += '🇮🇳 Index feed unavailable<br>';
+          if (gp) {
+            s += `🇺🇸 Nasdaq ${f(gp.nasdaq)} · 🛢️ Crude ${f(gp.crude)} · 🥇 Gold ${f(gp.gold)} · 💵 DXY ${f(gp.dxy)}<br>`;
+            if (gp.nasdaq != null && gp.nasdaq < -0.5) s += '→ IT basket likely drags; risk-off tone.<br>';
+            if (gp.crude != null && gp.crude > 1.5) s += '→ Crude spike pressures paints/OMCs/logistics margins.<br>';
+            if (gp.dxy != null && gp.dxy > 0.5) s += '→ Strong dollar invites FII selling in EMs.<br>';
+            if (gp.nifty != null && gp.nifty < -0.3) s += '→ GIFT Nifty hints gap-down open; wait for 10 AM before fresh longs.<br>';
+            if (gp.nasdaq == null && gp.crude == null && gp.dxy == null) s += '<span class="opacity-60">Global feeds unreachable — no invented numbers.</span><br>';
+          }
+          return s + '<span class="opacity-60 text-[10px]">actual quotes via Yahoo, cached ~5 min</span>';
+        }
+        return 'Ask me about any stock — e.g. <i>"should I buy TCS?"</i>, <i>"RELIANCE fundamentals"</i>, <i>"is INFY overbought?"</i>, <i>"TCS vs INFY"</i>, <i>"market outlook tomorrow"</i> — I factor live price, RSI/DMA trends, filings KPIs (ROE/ROCE/EPS/D-E), ownership split & global cues, and label what\'s actual vs estimated.';
+      }
+      const s0 = syms[0];
+      if (syms.length === 2 || /\bvs\b|\bcompare\b|\bor\b/.test(l) && syms.length === 2) {
+        const [a, b] = await Promise.all([botVerdict(syms[0]), botVerdict(syms[1])]);
+        if (!a || !b) return 'One of those symbols isn\'t in my data — try NSE codes like RELIANCE, TCS, HDFCBANK.';
+        const row = v => `<tr><td class="pr-3 opacity-70">${v[0]}</td><td class="pr-3 font-mono">${v[1]}</td><td class="font-mono font-semibold">${v[2]}</td></tr>`;
+        const g = (x, k) => x.fp && x.fp[k] != null ? (typeof x.fp[k] === 'number' ? (k.includes('CAGR') ? x.fp[k].toFixed(0) + '%' : x.fp[k].toFixed(1)) : x.fp[k]) : '—';
+        return `<b>⚔️ ${a.sym} vs ${b.sym}</b> <span class="text-[10px] opacity-60">(⚡live · 📄FY24-25 filings)</span>
+        ${!a.live || !b.live ? `<div class="px-2 py-1 rounded-lg text-[11px] bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300 my-1">⏱ Live feed slow — ${[!a.live ? a.sym : null, !b.live ? b.sym : null].filter(Boolean).join(' & ')} shown from recent/cached history.</div>` : ''}
+        <table class="text-xs mt-1"><tbody>
+        ${row(['Price ⚡', '₹' + (a.price ? a.price.toFixed(1) : '—'), '₹' + (b.price ? b.price.toFixed(1) : '—')])}
+        ${row(['RSI ⚡', a.dd && a.dd.rsi != null ? a.dd.rsi.toFixed(0) : '—', b.dd && b.dd.rsi != null ? b.dd.rsi.toFixed(0) : '—'])}
+        ${row(['PE 📄', g(a, 'peRatio'), g(b, 'peRatio')])}
+        ${row(['ROCE 📄', g(a, 'roce'), g(b, 'roce')])}
+        ${row(['ROE 📄', g(a, 'roe'), g(b, 'roe')])}
+        ${row(['Profit CAGR 📄', g(a, 'profitCAGR3Y'), g(b, 'profitCAGR3Y')])}
+        ${row(['Promoter % 📄', g(a, 'promoterHolding'), g(b, 'promoterHolding')])}
+        ${row(['Verdict 🧮', a.act[0], b.act[0]])}
+        </tbody></table>
+        <div class="text-xs mt-1">Score: ${a.sym} <b>${a.score}</b> vs ${b.sym} <b>${b.score}</b> → ${a.score === b.score ? 'dead heat' : '<b>' + (a.score > b.score ? a.sym : b.sym) + '</b> currently screens stronger. Run both through Position Analyzer for full depth.'}</div>`;
+      }
+      const v = await botVerdict(s0);
+      if (!v) return `I don't have data for "${escHtml(s0)}" — check the NSE symbol spelling.`;
+      if (/fundamental|pe |roe|roce|eps|debt|kpi|ratio|numbers/.test(l)) {
+        const f = v.fp;
+        if (!f) return `${v.sym}: no filings snapshot stored — open its analysis for live technicals.`;
+        const eps = f.peRatio && v.price ? (v.price / f.peRatio).toFixed(1) : '—';
+        const dtar = f.debtToEquity != null ? (f.debtToEquity / (1 + f.debtToEquity) * 100).toFixed(0) + '%' : '—';
+        return `<b>📊 ${v.sym} KPIs</b> <span class="text-[10px] opacity-60">📄 FY24-25 filings · EPS ∑ derived</span><br>
+        ROE ${f.roe != null ? f.roe + '%' : '—'} · ROCE ${f.roce != null ? f.roce + '%' : '—'} · EPS ∑ ₹${eps}<br>
+        PE ${f.peRatio || '—'}x · D/E ${f.debtToEquity != null ? f.debtToEquity.toFixed(2) : '—'} · Debt/Assets ∑ ${dtar}<br>
+        Sales CAGR ${f.salesCAGR3Y != null ? f.salesCAGR3Y + '%' : '—'} · Profit CAGR ${f.profitCAGR3Y != null ? f.profitCAGR3Y + '%' : '—'}<br>
+        Promoters ${f.promoterHolding != null ? f.promoterHolding + '%' : '—'} · FII ${f.fiiHolding || '—'}%<br>
+        <button onclick="document.getElementById('chatClose').click();loadSaved('${v.sym}')" class="underline font-semibold mt-1">Full analysis →</button>`;
+      }
+      if (/technical|rsi|chart|support|resistance|trend|overbought|oversold/.test(l)) {
+        if (!v.dd) {
+          let m = `<div class="px-2 py-1 rounded-lg text-[11px] font-semibold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300 my-1">⚠️ Error fetching live chart data for ${escHtml(v.sym)}.</div>`;
+          m += v.fp ? `Per past stored analysis (FY24-25 filings): ROE ${v.fp.roe != null ? v.fp.roe + '%' : '—'}, ROCE ${v.fp.roce != null ? v.fp.roce + '%' : '—'}, PE ${v.fp.peRatio || '—'}x, profit CAGR ${v.fp.profitCAGR3Y != null ? v.fp.profitCAGR3Y + '%' : '—'}. Retry shortly for live technicals.` :
+            'No historical snapshot available either — I won\'t invent numbers. Try again in a minute.';
+          return m;
+        }
+        const d = v.dd;
+        return `${v.warn || ''}<b>📉 ${v.sym} technicals</b> <span class="text-[10px] opacity-60">${v.live ? 'live quote + real daily closes' : 'from recent history (not live)'}</span><br>
+        Price ${v.live ? '⚡' : '⏱'} ₹${v.price ? v.price.toFixed(1) : '—'} · RSI ${d.rsi != null ? d.rsi.toFixed(0) : '—'} ${d.rsi > 70 ? '(overbought!)' : d.rsi < 30 ? '(oversold)' : ''}<br>
+        vs 50-DMA ${d.dma50 && v.price ? ((v.price / d.dma50 - 1) * 100).toFixed(1) + '%' : '—'} · vs 200-DMA ${d.dma200 && v.price ? ((v.price / d.dma200 - 1) * 100).toFixed(1) + '%':''}<br>
+        Support ₹${d.support ? d.support.toFixed(0) : '—'} · Resistance ₹${d.resistance ? d.resistance.toFixed(0) : '—'} · 52W ₹${d.w52 ? d.w52.l.toFixed(0) + '–' + d.w52.h.toFixed(0) : '—'}`;
+      }
+      // default: full point-in-time verdict
+      return `${v.warn}<b>${v.act[0]}</b> · ${v.sym} ${v.live ? '⚡' : '⏱'} ₹${v.price ? v.price.toFixed(1) : '—'} <span class="text-[10px] opacity-60">confidence ${v.score}/100 · ${new Date().toLocaleTimeString('en-IN')}</span>
+      <div class="text-xs mt-1">${v.pts.slice(0, 4).map(p => '• ' + p).join('<br>')}${v.risks.length ? '<br>' + v.risks.slice(0, 3).map(r => '⚠️ ' + r).join('<br>') : ''}</div>
+      ${v.sugHi != null ? `<div class="text-[11px] mt-1 opacity-80">Zones: stop-guard ≤ ₹${v.sugLo.toLocaleString('en-IN')} · book-profit ≥ ₹${v.sugHi.toLocaleString('en-IN')} ${v.pU != null ? `· 30-session odds: ${v.pU}% ↑res / ${v.pD}% ↓sup (σ-model)` : ''}</div>` : '<div class="text-[11px] mt-1 opacity-70">Zones need price history — unavailable right now.</div>'}
+      <div class="text-[10px] mt-1 opacity-60">🧮 screening hint, not investment advice — verify latest quarter.</div>
+      <div class="flex gap-2 mt-1"><button onclick="document.getElementById('chatClose').click();loadSaved('${v.sym}')" class="underline text-[11px] font-semibold">Full analysis →</button> <button onclick="document.getElementById('chatInput').value='${v.sym} ';document.getElementById('chatSend').focus()" class="underline text-[11px]">compare…</button></div>`;
+    }
+
+    function initBot() {
+      if (document.getElementById('chatFab')) return;
+      const st = document.createElement('style');
+      st.textContent = `
+        #chatFab{position:fixed;right:16px;bottom:16px;z-index:90;width:52px;height:52px;border-radius:999px;background:linear-gradient(135deg,var(--ruby),var(--ruby-light));color:#fff;font-size:22px;box-shadow:0 6px 24px rgba(224,17,95,.45);display:flex;align-items:center;justify-content:center;cursor:pointer;border:none}
+        #chatPanel{position:fixed;right:12px;bottom:78px;z-index:91;width:min(380px,calc(100vw - 24px));height:min(520px,70vh);border-radius:18px;display:none;flex-direction:column;overflow:hidden;box-shadow:0 18px 60px rgba(0,0,0,.35)}
+        #chatPanel.open{display:flex}
+        .chat-msg{max-width:88%;padding:8px 11px;border-radius:13px;font-size:12.5px;line-height:1.45;margin-bottom:7px;overflow-wrap:anywhere}
+        .chat-user{align-self:flex-end;background:linear-gradient(135deg,var(--ruby),var(--ruby-light));color:#fff;border-bottom-right-radius:4px}
+        .chat-bot{align-self:flex-start;background:#fff;color:#1f2937;border-bottom-left-radius:4px;border:1px solid rgba(0,0,0,.07)}
+        .dark .chat-bot{background:#26202b;color:#eee;border-color:rgba(228,208,10,.18)}
+      `;
+      document.head.appendChild(st);
+      const fab = document.createElement('button');
+      fab.id = 'chatFab'; fab.innerHTML = '💬'; fab.title = 'Ask the Analyst'; fab.onclick = () => {
+        panel.classList.toggle('open');
+        if (panel.classList.contains('open')) inp.focus();
+      };
+      const panel = document.createElement('div');
+      panel.id = 'chatPanel';
+      panel.className = 'card';
+      panel.innerHTML = `
+        <div class="flex items-center justify-between px-3 py-2 border-b border-gray-100 dark:border-gray-700" style="background:linear-gradient(135deg,var(--ruby),var(--ruby-light));color:#fff">
+          <div class="text-sm font-bold">🤖 PMA Analyst</div>
+          <button id="chatClose" style="color:#fff;font-size:16px">✕</button>
+        </div>
+        <div id="chatMsgs" class="flex flex-col flex-1 overflow-y-auto px-3 py-2"></div>
+        <div class="flex gap-1.5 px-2 py-1.5 border-t border-gray-100 dark:border-gray-700 bg-white dark:bg-gray-800">
+          <input id="chatInput" placeholder='e.g. should I buy TCS?' style="flex:1;font-size:13px;padding:7px 10px">
+          <button id="chatSend" class="top-btn ruby" style="padding:7px 12px;font-size:13px">➤</button>
+        </div>`;
+      document.body.appendChild(fab);
+      document.body.appendChild(panel);
+      document.getElementById('chatClose').onclick = () => panel.classList.remove('open');
+      const msgs = document.getElementById('chatMsgs');
+      const inp = document.getElementById('chatInput');
+      const send = document.getElementById('chatSend');
+      const push = (who, html) => {
+        const d = document.createElement('div');
+        d.className = 'chat-msg chat-' + who;
+        d.innerHTML = html;
+        msgs.appendChild(d);
+        msgs.scrollTop = msgs.scrollHeight;
+        return d;
+      };
+      const go = async () => {
+        const q = inp.value.trim();
+        if (!q) return;
+        inp.value = '';
+        push('user', escHtml(q));
+        const t = push('bot', '⏳ crunching KPIs…');
+        try {
+          t.innerHTML = await botAnswer(q);
+        } catch (e) {
+          console.warn(e);
+          t.innerHTML = 'Hmm, hit a snag fetching that. Try again in a moment.';
+        }
+        msgs.scrollTop = msgs.scrollHeight;
+      };
+      send.onclick = go;
+      inp.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+      push('bot', '👋 I factor <b>live price, RSI/DMA trend, filings KPIs, ownership split & global cues</b> — and tell you what\'s actual ⚡ vs filing 📄 vs model 🧮. Ask away!');
+    }
+    try { initBot(); } catch (e) {}
 
     // ══════════ INDEX TRAP WARNINGS — NIFTY 50 / BANK / 100 intraday behaviour ══════════
     async function getIndexDayStats() {
@@ -3828,6 +4063,12 @@
       };
       const [n50, bnk, n100] = await Promise.all([grab('^NSEI'), grab('^NSEBANK'), grab('^CNX100')]);
       const data = { n50, bnk, n100 };
+      if (!n50 && !bnk && !n100) {
+        if (_IDX_LAST) return { ..._IDX_LAST, stale: true };
+        _deepCache._IDX = { ts: Date.now(), data };
+        return data;
+      }
+      _IDX_LAST = data;
       _deepCache._IDX = { ts: Date.now(), data };
       return data;
     }
