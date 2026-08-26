@@ -5517,7 +5517,8 @@
       tracker: () => { try { renderPortfolio(); } catch (e) {} },
       mf: () => { try { renderMFTable(); renderMFPlan(); fetchForex(); } catch (e) {} },
       reits: () => { try { renderReitSection(); } catch (e) {} },
-      crypto: () => { try { renderCryptoExchangesTable(); } catch (e) {} try { fetchCryptoReturns(); } catch (e) {} try { fetchBinanceTickers(); } catch (e) {} }
+      crypto: () => { try { renderCryptoExchangesTable(); } catch (e) {} try { fetchCryptoReturns(); } catch (e) {} try { fetchBinanceTickers(); } catch (e) {} },
+      compare: () => { try { runCompare(); } catch (e) {} }
     };
     function runPageHooks(id) {
       const h = PAGE_HOOKS[id];
@@ -5539,11 +5540,13 @@
     PAGES.splice(8, 0,
       { id: 'abcd', title: '🧠 ABCD Expert Panel', subtitle: "India's market wizards score your stock", icon: '🧠', theme: 'citrine', render: renderAbcdPage }
     );
-    const cryptoIdx = PAGES.findIndex(p => p.id === 'crypto');
-    PAGES.splice(cryptoIdx, 0,
+    const cryptoIdx = PAGES.findIndex(p => p.id === 'crypto');    PAGES.splice(cryptoIdx, 0,
       { id: 'mf', title: '🪙 Mutual Funds & SIP', subtitle: 'Direct plans, expense drag, salary rule', icon: '🪙', theme: 'peridot', render: renderMfPage },
       { id: 'fees', title: '🧾 Fees & Break-even', subtitle: 'Brokerage, STT, GST — net profit truth', icon: '🧾', theme: 'ruby', render: renderFeesPage },
       { id: 'reits', title: '🏢 REITs & InvITs', subtitle: 'Income assets without buying land', icon: '🏢', theme: 'peridot', render: renderReitsPage }
+    );
+    PAGES.push(
+      { id: 'compare', title: '⚔️ Stock Comparator', subtitle: 'Live price vs filings vs model — honestly labelled', icon: '⚔️', theme: 'citrine', render: renderComparePage }
     );
 
     // ============ PAGE: ABCD EXPERT PANEL ============
@@ -5625,8 +5628,7 @@
     function analyzeIdea(sym) {
       const g = IDEA_BANK.find(g => g.premium && (g.stocks || []).some(st => st.s === sym));
       if (g && !isPro()) { openProModal(); return; }
-      const el = document.getElementById('abcdSymbol');
-      if (el) el.value = sym;
+      const el = document.getElementById('abcdSymbol');      if (el) el.value = sym;
       const p = document.getElementById('abcdPrice');
       if (p) p.value = '';
       runAbcdPanel();
@@ -5634,6 +5636,117 @@
         const r = document.getElementById('abcdResult');
         if (r && r.scrollIntoView) r.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 120);
+    }
+
+    // ============ ⚔️ STOCK COMPARATOR — live vs filings vs model ============
+    function renderComparePage() {
+      return `
+        <div class="page-header" style="color:var(--peridot-text);">
+          <div class="page-title">⚔️ Stock Comparator</div>
+          <div class="page-subtitle">Live price · filing fundamentals · model scores — honestly labelled</div>
+        </div>
+        <div class="card card-ruby mb-4 p-4">
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
+            ${['RELIANCE', 'TCS', 'HDFCBANK', 'INFY'].map((d, i) => `<input id="cmp${i}" placeholder="${d}" style="text-transform:uppercase" onkeydown="if(event.key==='Enter')runCompare()">`).join('')}
+          </div>
+          <button onclick="runCompare()" class="top-btn peridot w-full justify-center">⚔️ Compare now</button>
+        </div>
+        <div id="compareResult"></div>
+        <div class="card p-4 mt-4 text-[11px] text-gray-700 dark:text-gray-200 space-y-1.5">
+          <div class="font-bold">How to read each number — what's actual vs estimated:</div>
+          <div>⚡ <strong>Price &amp; MoS%</strong> — <span class="text-green-700 dark:text-green-400">ACTUAL</span>: live market quote fetched at comparison time.</div>
+          <div>📄 <strong>Fundamentals (PE, ROE, ROCE, D/E, CAGR, holdings)</strong> — <span style="color:var(--citrine-text)">REAL but a static snapshot</span> from FY24–25 filings stored in-app; verify the latest quarter before acting.</div>
+          <div>🧮 <strong>Moat / Consistency / Grade</strong> — <span class="text-red-600 dark:text-red-400">MODEL ESTIMATE</span>: derived by the ABCD engine from sector patterns, not company-reported numbers. Screening hints only.</div>
+          <div class="text-gray-500 dark:text-gray-400">🏆 marks the best value in each row among compared stocks. Untracked symbols show fundamentals as — (not stored in app).</div>
+        </div>`;
+    }
+
+    const CMP_METRICS = [
+      { label: 'P/E', key: 'peRatio', fmt: v => v == null ? '—' : v.toFixed(1) + 'x', best: 'low' },
+      { label: 'P/B', key: 'pbRatio', fmt: v => v == null ? '—' : v.toFixed(2) + 'x', best: 'low' },
+      { label: 'Div Yield', key: 'dividendYield', fmt: v => v == null ? '—' : v.toFixed(1) + '%', best: 'high' },
+      { label: 'ROE', key: 'roe', fmt: v => v == null ? '—' : v.toFixed(1) + '%', best: 'high' },
+      { label: 'ROCE', key: 'roce', fmt: v => v == null ? '—' : v.toFixed(1) + '%', best: 'high' },
+      { label: 'Debt/Equity', key: 'debtToEquity', fmt: v => v == null ? '—' : v.toFixed(2), best: 'low' },
+      { label: 'Sales CAGR 3Y 📄', key: 'salesCAGR3Y', fmt: v => v == null ? '—' : v.toFixed(0) + '%', best: 'high' },
+      { label: 'Profit CAGR 3Y 📄', key: 'profitCAGR3Y', fmt: v => v == null ? '—' : v.toFixed(0) + '%', best: 'high' },
+      { label: 'Promoter % 📄', key: 'promoterHolding', fmt: v => v == null ? '—' : v.toFixed(1) + '%', best: 'high' }
+    ];
+
+    function cmpGradeOf(p, mos) {
+      let cat;
+      if (p.consistency < 48 && mos >= 15) cat = 'D';
+      else if (p.cyclical >= 58) cat = 'C';
+      else if (p.consistency >= 66 && p.moat >= 60 && p.cyclical <= 48) cat = 'A';
+      else cat = 'B';
+      return cat;
+    }
+
+    async function runCompare() {
+      const host = document.getElementById('compareResult');
+      if (!host) return;
+      const syms = [0, 1, 2, 3].map(i => ((document.getElementById('cmp' + i) || {}).value || '').trim().toUpperCase()).filter(Boolean);
+      if (syms.length < 2) { host.innerHTML = '<div class="text-xs text-red-500 font-medium">Enter at least two symbols to compare.</div>'; return; }
+      host.innerHTML = '<div class="text-xs text-gray-500 py-3">⚡ Fetching live prices…</div>';
+
+      const rows = await Promise.all(syms.map(async s => {
+        const fp = FUNDAMENTAL_PICKS.find(f => f.symbol === s) || null;
+        const prof = abcdProfile(s);
+        let price = null;
+        try {
+          const q = await fetchLivePrice(s);
+          if (q) price = q.price ?? q.current ?? q.close ?? null;
+        } catch (e) {}
+        if (price == null) price = currentPriceFor(s);
+        const anchor = (findStock(s) || {}).basePrice || price || 100;
+        const qualityMult = 0.85 + (prof.consistency / 100) * 0.25 + (prof.moat / 100) * 0.2;
+        const fair = anchor * qualityMult;
+        const mos = ((fair - price) / fair) * 100;
+        return { s, fp, prof, price, mos, grade: cmpGradeOf(prof, mos), live: price != null };
+      }));
+
+      const cellCls = 'px-2.5 py-2 text-xs border-t border-gray-100 dark:border-gray-700';
+      const metricRow = m => {
+        const vals = rows.map(r => r.fp ? r.fp[m.key] : null).filter(v => v != null);
+        const bestVal = vals.length ? (m.best === 'low' ? Math.min(...vals) : Math.max(...vals)) : null;
+        return `<tr>
+          <td class="${cellCls} font-semibold whitespace-nowrap">${m.label}</td>
+          ${rows.map(r => {
+            const v = r.fp ? r.fp[m.key] : null;
+            const win = v != null && bestVal != null && Math.abs(v - bestVal) < 1e-9 && vals.length > 1;
+            return `<td class="${cellCls} font-mono ${win ? 'font-bold text-green-700 dark:text-green-400' : ''}">${m.fmt(v)}${win ? ' 🏆' : ''}</td>`;
+          }).join('')}
+        </tr>`;
+      };
+
+      host.innerHTML = `
+        <div class="card card-ruby p-3 overflow-x-auto pop-in">
+          <table class="w-full min-w-[420px] border-collapse">
+            <thead><tr>
+              <th class="text-left px-2.5 pb-2 text-[10px] uppercase tracking-wider text-gray-400">Metric</th>
+              ${rows.map(r => `<th class="text-left px-2.5 pb-2 text-sm font-bold">${escHtml(r.s)}</th>`).join('')}
+            </tr></thead>
+            <tbody>
+              <tr><td class="${cellCls} font-semibold whitespace-nowrap">⚡ Price (actual)</td>
+                ${rows.map(r => `<td class="${cellCls} font-mono font-bold">₹${r.price.toLocaleString('en-IN', { maximumFractionDigits: 2 })}</td>`).join('')}
+              </tr>
+              ${CMP_METRICS.map(metricRow).join('')}
+              <tr><td class="${cellCls} font-semibold whitespace-nowrap">🧮 Moat score</td>
+                ${rows.map(r => `<td class="${cellCls} font-mono">${r.prof.moat}/100</td>`).join('')}
+              </tr>
+              <tr><td class="${cellCls} font-semibold whitespace-nowrap">🧮 Consistency</td>
+                ${rows.map(r => `<td class="${cellCls} font-mono">${r.prof.consistency}/100</td>`).join('')}
+              </tr>
+              <tr><td class="${cellCls} font-semibold whitespace-nowrap">Grade (model)</td>
+                ${rows.map(r => `<td class="${cellCls}"><span class="badge ${r.grade === 'A' ? 'badge-peridot' : r.grade === 'D' ? 'badge-ruby' : 'badge-citrine'}">${r.grade}</span></td>`).join('')}
+              </tr>
+              <tr><td class="${cellCls} font-semibold whitespace-nowrap">⚡ MoS vs fair (est.)</td>
+                ${rows.map(r => `<td class="${cellCls} font-mono font-bold ${r.mos >= 15 ? 'text-green-700 dark:text-green-400' : r.mos < 0 ? 'text-red-500' : ''}">${r.mos.toFixed(1)}%</td>`).join('')}
+              </tr>
+            </tbody>
+          </table>
+          <div class="text-[10px] text-gray-400 mt-2">Fetched ${new Date().toLocaleTimeString('en-IN')} · grades & MoS use model fair-value, not analyst targets</div>
+        </div>`;
     }
 
     function abcdClamp(v, lo = 5, hi = 98) { return Math.max(lo, Math.min(hi, Math.round(v))); }
@@ -6039,6 +6152,7 @@
         { icon: '📊', label: 'Dashboard', page: 'dashboard' },
         { icon: '🌍', label: 'Geopolitics driver', page: 'geopolitics' },
         { icon: '🧠', label: 'ABCD Expert Panel', page: 'abcd' },
+        { icon: '⚔️', label: 'Stock Comparator', page: 'compare' },
         { icon: '📈', label: 'Position Analyzer', page: 'portfolio' },
         { icon: '📋', label: 'Portfolio Tracker', page: 'tracker' },
         { icon: '🪙', label: 'Crypto Guide', page: 'crypto' }
