@@ -1052,11 +1052,12 @@
           <div class="page-title">${PAGES[6].icon} Position Analyzer</div>
           <div class="page-subtitle">Live price → Buy / Hold / Sell / Book Profit</div>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
           <input type="text" id="portfolioSymbol" placeholder="Symbol (e.g., RELIANCE, TCS)" class="text-uppercase" style="text-transform:uppercase;">
           <input type="number" id="portfolioQty" placeholder="Qty Held" min="1">
           <input type="number" id="portfolioAvgPrice" placeholder="Avg Buy Price (₹)" step="0.01" min="0">
         </div>
+        <div id="savedChips" class="mb-4"></div>
         <div class="mb-4">
           <label class="text-xs text-gray-500">Total portfolio value (₹) — optional, enables concentration check</label>
           <input type="number" id="portfolioValue" placeholder="e.g. 1000000" class="w-full sm:w-1/2 mt-1" min="0">
@@ -3700,6 +3701,383 @@
     }
 
     // ============ STEP 3: PORTFOLIO ANALYSIS (Live) ============
+    // ══════════ DEEP DATA ENGINE — real history from Yahoo (via allorigins) ══════════
+    const _deepCache = {};
+    async function yahooChart(sym, range, interval) {
+      const raw = /^(CL=F|GC=F|DX|[\^])/i.test(sym) ? sym : encodeURIComponent(sym + '.NS');
+      const url = `https://query1.finance.yahoo.com/v8/finance/chart/${raw}?interval=${interval}&range=${range}`;
+      const controller = new AbortController();
+      const t = setTimeout(() => controller.abort(), 9000);
+      const res = await fetch(`https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`, { signal: controller.signal });
+      clearTimeout(t);
+      if (!res.ok) throw new Error('http ' + res.status);
+      const j = await res.json();
+      return (j.chart && j.chart.result && j.chart.result[0]) || null;
+    }
+
+    function normCdf(x) {
+      const t = 1 / (1 + 0.2316419 * Math.abs(x));
+      const d = 0.3989423 * Math.exp(-x * x / 2);
+      const p = d * t * (0.3193815 + t * (-0.3565638 + t * (1.7814779 + t * (-1.8212560 + t * 1.3302744))));
+      return x > 0 ? 1 - p : p;
+    }
+    function touchProb(price, target, sigma, sessions) {
+      if (!sigma || !price || !target || target <= 0 || price <= 0) return null;
+      const d = Math.abs(Math.log(target / price)) / (sigma * Math.sqrt(sessions / 252));
+      return Math.round(Math.min(95, Math.max(2, 200 * normCdf(-d))));
+    }
+
+    async function fetchStockDeepData(symbol) {
+      const key = String(symbol).toUpperCase().trim();
+      const c = _deepCache[key];
+      if (c && Date.now() - c.ts < 600000) return c.data;
+      const daily = await yahooChart(key, '1y', '1d');
+      if (!daily || !daily.indicators || !daily.indicators.quote || !daily.indicators.quote[0]) throw new Error('no chart');
+      const monthly = await yahooChart(key, '5y', '1mo').catch(() => null);
+      const closes = (daily.indicators.quote[0].close || []).filter(v => v != null);
+      const meta = daily.meta || {};
+      const n = closes.length;
+      if (n < 10) throw new Error('thin history');
+      const price = meta.regularMarketPrice || closes[n - 1];
+      const sma = k => (n >= k ? closes.slice(-k).reduce((a, b) => a + b, 0) / k : null);
+      let rsi = null;
+      if (n >= 15) {
+        let g = 0, l = 0;
+        for (let i = n - 14; i < n; i++) { const ch = closes[i] - closes[i - 1]; if (ch >= 0) g += ch; else l -= ch; }
+        rsi = l === 0 ? 100 : 100 - 100 / (1 + (g / 14) / (l / 14));
+      }
+      const ret = back => (n > back && closes[n - 1 - back]) ? ((price / closes[n - 1 - back]) - 1) * 100 : null;
+      const win90 = closes.slice(-90), win20 = closes.slice(-20);
+      let vol30 = null;
+      if (n >= 31) {
+        const rr = [];
+        for (let i = n - 30; i < n; i++) rr.push(Math.log(closes[i] / closes[i - 1]));
+        const m = rr.reduce((a, b) => a + b, 0) / rr.length;
+        vol30 = Math.sqrt(rr.reduce((a, b) => a + (b - m) ** 2, 0) / rr.length) * Math.sqrt(252);
+      }
+      let r1y = null, r5y = null;
+      if (monthly && monthly.indicators && monthly.indicators.quote && monthly.indicators.quote[0]) {
+        const mc = (monthly.indicators.quote[0].close || []).filter(v => v != null);
+        if (mc.length >= 13) r1y = ((price / mc[mc.length - 13]) - 1) * 100;
+        if (mc.length >= 61) r5y = ((price / mc[mc.length - 61]) - 1) * 100;
+      }
+      const d = {
+        ok: true, price,
+        prevClose: meta.previousClose != null ? meta.previousClose : (n > 1 ? closes[n - 2] : null),
+        rsi, dma50: sma(50), dma200: sma(200),
+        w52: (meta.fiftyTwoWeekHigh && meta.fiftyTwoWeekLow) ? { h: meta.fiftyTwoWeekHigh, l: meta.fiftyTwoWeekLow } : null,
+        support: win90.length >= 20 ? Math.min(...win90) : null,
+        resistance: win90.length >= 20 ? Math.max(...win90) : null,
+        bandLow: win20.length >= 5 ? Math.min(...win20) : null,
+        bandHigh: win20.length >= 5 ? Math.max(...win20) : null,
+        vol30,
+        r1d: meta.previousClose ? ((price / meta.previousClose) - 1) * 100 : ret(1),
+        r1w: ret(5), r1m: ret(21), r1y, r5y
+      };
+      _deepCache[key] = { ts: Date.now(), data: d };
+      return d;
+    }
+
+    async function getGlobalPulse() {
+      const ck = _deepCache._GLOBAL;
+      if (ck && Date.now() - ck.ts < 600000) return ck.data;
+      const grab = async s => {
+        try {
+          const r = await yahooChart(s, '5d', '1d');
+          const cl = (r.indicators.quote[0].close || []).filter(v => v != null);
+          if (cl.length >= 2) return ((cl[cl.length - 1] / cl[cl.length - 2]) - 1) * 100;
+        } catch (e) {}
+        return null;
+      };
+      const [nifty, nasdaq, crude, gold, dxy] = await Promise.all([grab('^NSEI'), grab('^IXIC'), grab('CL=F'), grab('GC=F'), grab('DX-Y.NYB')]);
+      const data = { nifty, nasdaq, crude, gold, dxy };
+      _deepCache._GLOBAL = { ts: Date.now(), data };
+      return data;
+    }
+
+    async function bestPriceFor(symbol) {
+      try { const q = await fetchLivePrice(symbol); if (q && q.price && q.price !== 100) return q.price; } catch (e) {}
+      try { const d = await fetchStockDeepData(symbol); if (d && d.price && d.price !== 100) return d.price; } catch (e) {}
+      return null;
+    }
+
+    function circuitBandPct(symbol) {
+      const info = findStock(symbol) || {};
+      const bp = info.basePrice || 0;
+      const vol = info.volatility || 0.02;
+      return (bp < 500 || vol > 0.03) ? 10 : 20;
+    }
+
+    // ══════════ SAVED STOCKS — never retype again ══════════
+    function getSaved() { try { return JSON.parse(localStorage.getItem('pma_saved') || '[]'); } catch (e) { return []; } }
+    function toggleSaved(sym) {
+      sym = String(sym).toUpperCase().trim();
+      if (!sym) return;
+      let a = getSaved();
+      if (a.some(x => x.s === sym)) a = a.filter(x => x.s !== sym); else { a.push({ s: sym, ts: Date.now() }); showToast('⭐ ' + sym + ' saved — one-tap access forever'); }
+      localStorage.setItem('pma_saved', JSON.stringify(a.slice(-48)));
+      renderSavedChips();
+      const b = document.getElementById('saveBtnWrap');
+      if (b) b.innerHTML = saveBtnHtml(sym);
+    }
+    function isSaved(sym) { return getSaved().some(x => x.s === String(sym).toUpperCase()); }
+    function saveBtnHtml(sym) { return `<button id="saveBtnWrapBtn" onclick="toggleSaved('${sym}')" class="top-btn citrine text-xs px-3 py-1.5">${isSaved(sym) ? '★ Saved — remove?' : '☆ Save ' + sym}</button>`; }
+    function renderSavedChips() {
+      const host = document.getElementById('savedChips');
+      if (!host) return;
+      const a = getSaved();
+      host.innerHTML = a.length
+        ? `<div class="flex flex-wrap gap-1.5 items-center"><span class="text-[11px] text-gray-500 dark:text-gray-400">⭐ Saved:</span>${a.map(x => `<span class="px-2 py-1 rounded-full text-[11px] font-semibold cursor-pointer border" style="border-color:var(--citrine);color:var(--citrine-text)" onclick="loadSaved('${x.s}')">${escHtml(x.s)} <b class="opacity-50" onclick="event.stopPropagation();toggleSaved('${x.s}')">✕</b></span>`).join('')}</div>`
+        : `<div class="text-[11px] text-gray-400 dark:text-gray-500">No saved stocks yet — analyze any stock and hit ☆ Save. Your list persists on this device.</div>`;
+    }
+    function loadSaved(sym) {
+      const el = document.getElementById('portfolioSymbol');
+      if (!el) return;
+      el.value = sym;
+      analyzePortfolio();
+    }
+
+    // ══════════ AGENTIC PRICE ALERTS — auto buy/sell triggers ══════════
+    function getAlerts() { try { return JSON.parse(localStorage.getItem('pma_alerts') || '[]'); } catch (e) { return []; } }
+    function persistAlerts(a) { localStorage.setItem('pma_alerts', JSON.stringify(a)); renderAlertsList(); }
+    function renderAlertsList() {
+      const host = document.getElementById('alertsList');
+      if (!host) return;
+      const a = getAlerts();
+      if (!a.length) { host.innerHTML = '<div class="text-[11px] text-gray-400">No active alerts. Set one above — the app watches prices every 60s even while you browse other pages.</div>'; return; }
+      host.innerHTML = a.map(al => `
+        <div class="flex items-center justify-between gap-2 py-1.5 border-b border-gray-100 dark:border-gray-700 text-xs">
+          <span>${al.on ? '🟢' : '✅'} <b>${escHtml(al.s)}</b> ${al.k === 'above' ? '≥' : '≤'} <span class="font-mono">₹${al.p.toLocaleString('en-IN')}</span>${al.fired ? ` <span class="text-gray-400">(triggered @ ₹${Number(al.fired.price).toFixed(1)})</span>` : ''}</span>
+          <button onclick="delAlert(${al.id})" class="text-red-400 hover:text-red-600 px-1">✕</button>
+        </div>`).join('');
+    }
+    function delAlert(id) { persistAlerts(getAlerts().filter(x => x.id !== id)); }
+    async function addAlertFromInput(prefSym, prefPrice) {
+      const symEl = document.getElementById('alertSym');
+      const priceEl = document.getElementById('alertPrice');
+      const kindEl = document.getElementById('alertKind');
+      const sym = (prefSym || (symEl && symEl.value) || '').toUpperCase().trim();
+      let price = parseFloat(prefPrice != null ? prefPrice : (priceEl && priceEl.value));
+      if (!sym || !price || price <= 0) { showToast('Enter a stock and a valid target price'); return; }
+      if ('Notification' in window && Notification.permission === 'default') { try { Notification.requestPermission(); } catch (e) {} }
+      const a = getAlerts();
+      a.push({ id: Date.now(), s: sym, k: kindEl ? kindEl.value : 'above', p: price, on: true, ts: Date.now() });
+      persistAlerts(a);
+      showToast(`🔔 Armed: ${sym} ${kindEl && kindEl.value === 'below' ? '≤' : '≥'} ₹${price.toLocaleString('en-IN')} — app will ping you`);
+      if (priceEl) priceEl.value = '';
+    }
+    function notifyUserAlert(title, body) {
+      showToast('🔔 ' + title);
+      if ('Notification' in window && Notification.permission === 'granted') { try { new Notification(title, { body }); } catch (e) {} }
+    }
+    async function checkAlerts() {
+      const list = getAlerts().filter(x => x.on);
+      if (!list.length) return;
+      for (const al of list) {
+        let price = null;
+        try { price = await bestPriceFor(al.s); } catch (e) {}
+        if (!price) continue;
+        const hit = al.k === 'above' ? price >= al.p : price <= al.p;
+        if (!hit) continue;
+        let dd = null; try { dd = await fetchStockDeepData(al.s); } catch (e) {}
+        const above200 = dd && dd.dma200 ? price > dd.dma200 : null;
+        const nearSup = dd && dd.support ? Math.abs(price - dd.support) / dd.support < 0.03 : false;
+        let advice;
+        if (al.k === 'below') {
+          advice = nearSup ? 'Level coincides with 90-day support — bounce possible; give it a day before full exit.' :
+            above200 === false ? 'Below 200-DMA = downtrend confirmed. Protect capital — SELL / trim hard.' :
+              'Long-term trend still up — likely pullback; trim partial if position is oversized.';
+        } else {
+          advice = (dd && dd.rsi != null && dd.rsi > 70) ? 'RSI overbought (>70) — book profits into strength.' :
+            (dd && dd.w52 && price >= dd.w52.h * 0.98) ? 'In 52-week-high zone — trail a stop, ride the winner partially.' :
+              'Target reached — consider booking 1/3rd and trailing the rest.';
+        }
+        notifyUserAlert(`${al.s} ${al.k === 'above' ? '≥' : '≤'} ₹${al.p.toLocaleString('en-IN')} — now ₹${price.toFixed(1)}`, advice);
+        al.on = false; al.fired = { ts: Date.now(), price };
+      }
+      persistAlerts(getAlerts());
+    }
+    setInterval(() => { try { checkAlerts(); } catch (e) {} }, 60000);
+
+    function betterPickFor(symbol) {
+      const me = FUNDAMENTAL_PICKS.find(f => f.symbol === symbol);
+      if (!me) return null;
+      const comp = f => (f.roce || 0) * 0.35 + (f.profitCAGR3Y || 0) * 0.45 + (f.roe || 0) * 0.2 - (f.peRatio || 45) * 0.4 + (f.dividendYield || 0) * 0.5;
+      const mine = comp(me);
+      const pool = FUNDAMENTAL_PICKS.filter(f => f.symbol !== symbol).sort((a, b) => comp(b) - comp(a));
+      const sameSector = pool.find(f => f.sector === me.sector && comp(f) > mine);
+      return sameSector || pool.find(f => comp(f) > mine) || pool[0] || null;
+    }
+
+    // ══════════ ANALYSIS ENRICHMENT — fundamentals, technicals, flags, ripple ══════════
+    async function enrichAnalysis(symbol, currentPrice, dayChangePct) {
+      const host = document.getElementById('portfolioResult');
+      if (!host) return;
+      const holder = document.createElement('div');
+      holder.id = 'enrichBox';
+      holder.innerHTML = '<div class="text-xs py-3" style="color:var(--citrine-text)">🔎 Pulling real price history, shareholding & global cues…</div>';
+      host.appendChild(holder);
+
+      const fp = FUNDAMENTAL_PICKS.find(f => f.symbol === symbol) || null;
+      const dd = await fetchStockDeepData(symbol).catch(() => null);
+      const gp = await getGlobalPulse().catch(() => null);
+      const info = findStock(symbol) || {};
+      const flags = [];
+
+      // ---- horizon strip ----
+      const chip = (lbl, v) => v == null
+        ? `<span class="px-2 py-1 rounded-lg text-[11px] bg-gray-100 dark:bg-gray-700 text-gray-400">${lbl}: —</span>`
+        : `<span class="px-2 py-1 rounded-lg text-[11px] font-bold ${v >= 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}">${lbl} ${v >= 0 ? '+' : ''}${v.toFixed(1)}%</span>`;
+      let horizons = '';
+      if (dd && dd.ok) horizons = ['1D', '1W', '1M', '1Y', '5Y'].map((l, i) => chip(l, [dd.r1d, dd.r1w, dd.r1m, dd.r1y, dd.r5y][i])).join('');
+
+      // ---- technicals ----
+      let tech = '';
+      if (dd && dd.ok) {
+        const pos52 = dd.w52 ? Math.max(0, Math.min(100, ((dd.price - dd.w52.l) / (dd.w52.h - dd.w52.l)) * 100)) : null;
+        const rsiCol = dd.rsi == null ? '#999' : dd.rsi > 70 ? '#dc2626' : dd.rsi < 30 ? '#16a34a' : 'var(--citrine)';
+        tech = `
+        <div class="card card-peridot p-4 mt-3">
+          <div class="font-bold text-sm mb-2">📉 Technical Read <span class="text-[10px] font-normal text-gray-400">— computed from 1-year daily closes (ACTUAL)</span></div>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
+            <div><span class="text-gray-500">RSI (14)</span><br><span class="font-mono font-bold" style="color:${rsiCol}">${dd.rsi == null ? '—' : dd.rsi.toFixed(0)}</span> <span class="text-[10px] text-gray-400">${dd.rsi == null ? '' : dd.rsi > 70 ? 'overbought' : dd.rsi < 30 ? 'oversold' : 'neutral'}</span></div>
+            <div><span class="text-gray-500">vs 50-DMA</span><br><span class="font-mono font-bold ${dd.dma50 && dd.price >= dd.dma50 ? 'text-green-600' : 'text-red-500'}">${dd.dma50 ? ((dd.price / dd.dma50 - 1) * 100).toFixed(1) + '%' : '—'}</span></div>
+            <div><span class="text-gray-500">vs 200-DMA</span><br><span class="font-mono font-bold ${dd.dma200 && dd.price >= dd.dma200 ? 'text-green-600' : 'text-red-500'}">${dd.dma200 ? ((dd.price / dd.dma200 - 1) * 100).toFixed(1) + '%' : '—'}</span></div>
+            <div><span class="text-gray-500">Ann. volatility</span><br><span class="font-mono font-bold">${dd.vol30 ? (dd.vol30 * 100).toFixed(0) + '%' : '—'}</span></div>
+          </div>
+          ${pos52 != null ? `<div class="mt-3"><div class="flex justify-between text-[10px] text-gray-500"><span>52W low ₹${dd.w52.l.toFixed(0)}</span><span>52W position: ${pos52.toFixed(0)}%</span><span>52W high ₹${dd.w52.h.toFixed(0)}</span></div>
+            <div class="range-bar mt-1"><div style="height:7px;border-radius:4px;width:${pos52}%;background:linear-gradient(90deg,var(--peridot),var(--citrine),var(--ruby));"></div></div></div>` : ''}
+          <div class="grid grid-cols-3 gap-2 mt-3 text-center text-xs">
+            <div class="p-2 rounded-lg" style="background:rgba(22,163,74,.08)"><div class="text-[10px] text-gray-500">Support (90D)</div><div class="font-mono font-bold text-green-700 dark:text-green-400">₹${dd.support ? dd.support.toFixed(1) : '—'}</div></div>
+            <div class="p-2 rounded-lg" style="background:rgba(234,179,8,.08)"><div class="text-[10px] text-gray-500">20-day band</div><div class="font-mono font-bold">₹${dd.bandLow ? dd.bandLow.toFixed(0) : '––'} – ₹${dd.bandHigh ? dd.bandHigh.toFixed(0) : '—'}</div></div>
+            <div class="p-2 rounded-lg" style="background:rgba(224,17,95,.08)"><div class="text-[10px] text-gray-500">Resistance (90D)</div><div class="font-mono font-bold text-red-600">₹${dd.resistance ? dd.resistance.toFixed(1) : '—'}</div></div>
+          </div>
+          <div class="text-[10px] text-gray-400 mt-2">Ranges come from actual traded history — support/resistance are where buyers/sellers actually stepped in, not formulas.</div>
+        </div>`;
+        if (dd.rsi != null && dd.rsi > 75) flags.push(['⚠️ RSI ' + dd.rsi.toFixed(0) + ' — overheated, pullback risk', 'bad']);
+        if (dd.rsi != null && dd.rsi < 25) flags.push(['⚠️ RSI ' + dd.rsi.toFixed(0) + ' — washed out (contrarian watch)', 'warn']);
+        if (dd.dma200 && dd.price < dd.dma200 * 0.97) flags.push(['⚠️ Below 200-DMA by ' + ((1 - dd.price / dd.dma200) * 100).toFixed(0) + '% — primary downtrend', 'bad']);
+        if (dd.w52 && dd.price >= dd.w52.h * 0.96) flags.push(['⚠️ Within 4% of 52W high — froth zone, stagger entries', 'warn']);
+        if (dd.w52 && dd.price <= dd.w52.l * 1.04) flags.push(['⚠️ Sitting on 52W low — falling knife unless revival proof', 'warn']);
+
+        const band = circuitBandPct(symbol);
+        if (dayChangePct != null && dayChangePct <= -(band - 3)) flags.push([`🚨 LOWER-CIRCUIT RISK: down ${dayChangePct.toFixed(1)}%, assumed ${band}% band — sellers may get trapped, exit queue early`, 'crit']);
+        if (dayChangePct != null && dayChangePct >= (band - 3)) flags.push([`⚡ Near UPPER circuit (+${dayChangePct.toFixed(1)}%) — momentum crowd, don't chase blindly`, 'warn']);
+      } else {
+        tech = `<div class="card p-4 mt-3 text-xs text-yellow-700 dark:text-yellow-300">⚠️ Live history unavailable for ${escHtml(symbol)} right now (proxy/network). No fake numbers shown — retry shortly.</div>`;
+      }
+
+      // ---- fundamentals ----
+      let fund = '';
+      if (fp) {
+        const dtarEst = fp.debtToEquity != null ? fp.debtToEquity / (1 + fp.debtToEquity) : null;
+        const eps = fp.peRatio ? currentPrice / fp.peRatio : null;
+        const cell = (l, v, tag) => `<div class="p-2 rounded-lg bg-gray-50 dark:bg-gray-800"><div class="text-[10px] text-gray-500">${l}</div><div class="font-mono font-bold text-sm">${v}</div><div class="text-[9px] text-gray-400">${tag}</div></div>`;
+        fund = `
+        <div class="card card-ruby p-4 mt-3">
+          <div class="font-bold text-sm mb-2">📊 Fundamental Scorecard <span class="text-[10px] font-normal text-gray-400">— 📄 = FY24-25 filings snapshot · ∑ = derived from filings+live price</span></div>
+          <div class="grid grid-cols-3 md:grid-cols-4 gap-2">
+            ${cell('ROE 📄', fp.roe != null ? fp.roe.toFixed(1) + '%' : '—', 'return on equity')}
+            ${cell('ROCE 📄', fp.roce != null ? fp.roce.toFixed(1) + '%' : '—', 'capital efficiency')}
+            ${cell('EPS ∑', eps ? '₹' + eps.toFixed(1) : '—', 'implied = price ÷ PE')}
+            ${cell('D/E 📄', fp.debtToEquity != null ? fp.debtToEquity.toFixed(2) : '—', 'leverage')}
+            ${cell('Debt/Assets ∑', dtarEst != null ? (dtarEst * 100).toFixed(0) + '%' : '—', 'est. debt ÷ (debt+equity)')}
+            ${cell('Sales CAGR 3Y 📄', fp.salesCAGR3Y != null ? fp.salesCAGR3Y.toFixed(0) + '%' : '—', 'growth')}
+            ${cell('Profit CAGR 3Y 📄', fp.profitCAGR3Y != null ? fp.profitCAGR3Y.toFixed(0) + '%': '—', 'earnings growth')}
+            ${cell('Div Yield 📄', fp.dividendYield != null ? fp.dividendYield.toFixed(1) + '%' : '—', 'cash return')}
+          </div>
+          ${(fp.salesCAGR3Y != null && fp.profitCAGR3Y != null && fp.profitCAGR3Y < fp.salesCAGR3Y) ? (flags.push(['⚠️ Margin squeeze: profit growing slower than sales (' + fp.profitCAGR3Y.toFixed(0) + '% vs ' + fp.salesCAGR3Y.toFixed(0) + '%)', 'warn']), '') : ''}
+          ${fp.debtToEquity != null && fp.debtToEquity > 1 ? (flags.push(['⚠️ High leverage D/E ' + fp.debtToEquity.toFixed(2) + ' — rate hikes hurt this one', 'bad']), '') : ''}
+        </div>`;
+      } else {
+        fund = `<div class="card p-3 mt-3 text-xs text-gray-500">📄 Filings-based fundamentals not stored for ${escHtml(symbol)} yet — showing live technicals only.</div>`;
+      }
+
+      // ---- shareholding ----
+      let sh = '';
+      if (fp && fp.promoterHolding != null) {
+        const prom = fp.promoterHolding, fii = fp.fiiHolding || 0, rest = Math.max(0, 100 - prom - fii);
+        const verdict = prom >= 55 ? 'Skin-in-the-game strong — promoters aligned with minority holders.' :
+          prom >= 45 ? 'Adequate promoter stake — check pledge disclosures before adding.' :
+            'Thin promoter holding — governance risk; demand extra margin of safety.';
+        const fiiV = fii >= 30 ? 'Heavy institutional validation — but FII exits cause sharp drawdowns.' : fii >= 15 ? 'Healthy institutional interest.' : 'Low FII interest — discovery depends on retail/DII flows.';
+        sh = `
+        <div class="card card-citrine p-4 mt-3">
+          <div class="font-bold text-sm mb-2">🏦 Ownership Structure <span class="text-[10px] font-normal text-gray-400">— who really controls the float</span></div>
+          <div class="flex h-5 rounded-full overflow-hidden text-[9px] font-bold text-white text-center">
+            <div style="width:${prom}%;background:var(--ruby);line-height:20px;">${prom.toFixed(0)}%</div>
+            <div style="width:${fii}%;background:#7c3aed;line-height:20px;">${fii ? fii.toFixed(0) + '%' : ''}</div>
+            <div style="width:${rest}%;background:#64748b;line-height:20px;">${rest.toFixed(0)}%</div>
+          </div>
+          <div class="flex justify-between text-[10px] mt-1 text-gray-500"><span>🟥 Promoters</span><span>🟪 FII</span><span>⬜ DII + Public (balance)</span></div>
+          <div class="text-xs mt-2 text-gray-700 dark:text-gray-200">💡 <strong>Read:</strong> ${verdict} ${fiiV} Public+DII float of ${rest.toFixed(0)}% ${rest > 45 ? 'means retail-heavy volatility — expect sharp swings on news.' : 'keeps the stock steadier.'}</div>
+        </div>`;
+        if (prom < 45) flags.push(['⚠️ Promoter holding just ' + prom.toFixed(0) + '% — weak skin in the game', 'warn']);
+      }
+
+      // ---- global ripple ----
+      let rip = '';
+      if (gp) {
+        const row = (icon, name, v, impact) => `<div class="flex items-start gap-2 py-1 border-b border-gray-100 dark:border-gray-700 text-xs">
+          <span class="w-16 shrink-0 font-semibold">${icon} ${name}</span>
+          <span class="w-20 shrink-0 font-mono font-bold ${v == null ? 'text-gray-400' : v >= 0 ? 'text-green-600' : 'text-red-500'}">${v == null ? '—' : (v >= 0 ? '+' : '') + v.toFixed(2) + '%'}</span>
+          <span class="text-gray-600 dark:text-gray-300">${impact}</span></div>`;
+        rip = `
+        <div class="card card-peridot p-4 mt-3">
+          <div class="font-bold text-sm mb-1">🌍 Global Ripple — how world markets shape tomorrow's Indian open <span class="text-[10px] font-normal text-gray-400">(actual overnight moves)</span></div>
+          ${row('🇮🇳', 'NIFTY fut', gp.nifty, gp.nifty == null ? '' : gp.nifty > 0.3 ? 'Gap-up open likely; bullish intraday bias.' : gp.nifty < -0.3 ? 'Gap-down open; avoid fresh longs at bell.' : 'Flat opening expected.')}
+          ${row('🇺🇸', 'Nasdaq', gp.nasdaq, gp.nasdaq == null ? '' : gp.nasdaq > 0.5 ? 'Tailwind for NIFTY IT (TCS/INFY/WPRO) + startups.' : gp.nasdaq < -0.5 ? 'Drag on IT basket; risk-off for high-PE tech.' : 'Neutral for IT.')}
+          ${row('🛢️', 'Crude', gp.crude, gp.crude == null ? '' : gp.crude > 1.5 ? 'Margin pain for OMCs/paints/logistics (Asian Paints, Indigo); upside for ONGC/OIL.' : gp.crude < -1.5 ? 'Relief for paint/logistics/aviation margins; ONGC softens.' : 'Stable input costs.')}
+          ${row('🥇', 'Gold', gp.gold, gp.gold == null ? '' : gp.gold > 1 ? 'Safe-haven bid = global worry signal; hedge mode.' : 'Risk appetite normal.')}
+          ${row('💵', 'Dollar Idx', gp.dxy, gp.dxy == null ? '' : gp.dxy > 0.5 ? 'Strong dollar → FII outflow pressure on EMs incl. India; INR slides.' : gp.dxy < -0.5 ? 'Soft dollar → FII inflows favour Indian equities.' : 'Currency calm.')}
+        </div>`;
+      }
+
+      // ---- better pick ----
+      let swap = '';
+      const bp2 = betterPickFor(symbol);
+      if (bp2) {
+        swap = `
+        <div class="card p-4 mt-3" style="border-left:4px solid var(--peridot);">
+          <div class="font-bold text-sm">🔄 Stronger alternative in our tracked universe</div>
+          <div class="text-xs mt-1 text-gray-700 dark:text-gray-200">On composite quality (ROCE 35% · profit CAGR 45% · ROE 20% − PE penalty), <b>${escHtml(bp2.name)} (${escHtml(bp2.symbol)})</b> scores higher than ${escHtml(symbol)}
+          ${fp ? `(ROCE ${(bp2.roce || 0).toFixed(0)}% vs ${(fp.roce || 0).toFixed(0)}% · profit CAGR ${(bp2.profitCAGR3Y || 0).toFixed(0)}% vs ${(fp.profitCAGR3Y || 0).toFixed(0)}% · PE ${(bp2.peRatio || 0).toFixed(0)} vs ${(fp.peRatio || 0).toFixed(0)})` : ''}.
+          Not a sell-call — a comparison anchor. <button onclick="loadSaved('${bp2.symbol}')" class="underline font-semibold">Analyze ${escHtml(bp2.symbol)} →</button></div>
+          <div class="text-[10px] text-gray-400 mt-1">📄 metrics from FY24-25 snapshots; run both through this analyzer before acting.</div>
+        </div>`;
+      }
+
+      // ---- flags ----
+      const flagHtml = flags.length ? `<div class="mt-3 flex flex-wrap gap-1.5">${flags.map(([t, sev]) => `<span class="px-2 py-1 rounded-lg text-[11px] font-semibold ${sev === 'crit' ? 'bg-red-600 text-white animate-pulse' : sev === 'bad' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300'}">${t}</span>`).join('')}</div>` : '';
+
+      // ---- alert + save card ----
+      const sugLo = dd && dd.support ? Math.round(dd.support) : Math.round(currentPrice * 0.93);
+      const sugHi = dd && dd.resistance ? Math.round(dd.resistance) : Math.round(currentPrice * 1.07);
+      const probUp = dd ? touchProb(currentPrice, sugHi, dd.vol30, 30) : null;
+      const probDn = dd ? touchProb(currentPrice, sugLo, dd.vol30, 30) : null;
+      const alertCard = `
+      <div class="card card-ruby p-4 mt-3">
+        <div class="flex items-center justify-between flex-wrap gap-2">
+          <div class="font-bold text-sm">🔔 Agentic Watch — auto-alert when price crosses your levels</div>
+          <span id="saveBtnWrap">${saveBtnHtml(symbol)}</span>
+        </div>
+        <div class="flex flex-wrap gap-2 items-center mt-2">
+          <input id="alertSym" value="${escHtml(symbol)}" readonly class="w-24 text-xs uppercase font-bold">
+          <select id="alertKind" class="text-xs px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800">
+            <option value="above">Sell-zone ≥</option><option value="below">Buy/Stop ≤</option>
+          </select>
+          <input id="alertPrice" type="number" placeholder="₹ target" class="w-28 text-xs">
+          <button onclick="addAlertFromInput()" class="top-btn ruby text-xs px-3 py-1.5">Arm alert 🔔</button>
+        </div>
+        <div class="text-[10px] text-gray-500 mt-1.5">Suggested zones from actual structure — resistance ₹${sugHi.toLocaleString('en-IN')} (book profits) · support ₹${sugLo.toLocaleString('en-IN')} (stop-loss guard).
+        ${probUp != null ? `Model odds within 30 sessions: <b>${probUp}%</b> touch resistance · <b>${probDn}%</b> touch support (σ-model estimate, not certainty).` : ''}</div>
+        <div id="alertsList" class="mt-2"></div>
+      </div>`;
+
+      holder.innerHTML = `${flagHtml}${horizons ? `<div class="card p-3 mt-3"><div class="text-[10px] text-gray-400 mb-1.5">⏱ Multi-horizon ACTUAL returns (Yahoo daily/monthly closes)</div><div class="flex flex-wrap gap-1.5">${horizons}</div></div>` : ''}${tech}${fund}${sh}${rip}${swap}${alertCard}`;
+      renderAlertsList();
+    }
+
     async function analyzePortfolio() {
       const symbol = document.getElementById('portfolioSymbol').value.toUpperCase().trim();
       const qty = parseFloat(document.getElementById('portfolioQty').value);
@@ -3712,13 +4090,21 @@
       btn.disabled = true; btn.textContent = 'Fetching Live Price...'; btn.classList.add('pulse');
 
       try {
-        const liveData = await fetchLivePrice(symbol);
-        if (!liveData || !liveData.price) throw new Error('Price not found');
-
-        const currentPrice = liveData.price;
-        const dayChange = liveData.change;
-        const dayChangePct = liveData.changePct;
-        const dataSource = liveData.source || 'live';
+        let liveData = null;
+        try { liveData = await fetchLivePrice(symbol); } catch (e) {}
+        let dataSource;
+        let currentPrice, dayChange, dayChangePct;
+        if (liveData && liveData.price && liveData.price !== 100) {
+          currentPrice = liveData.price; dayChange = liveData.change || 0; dayChangePct = liveData.changePct || 0;
+          dataSource = liveData.source || 'live';
+        } else {
+          const dp = await fetchStockDeepData(symbol).catch(() => null);
+          if (!dp || !dp.price) throw new Error('NO_REAL_PRICE');
+          currentPrice = dp.price;
+          dayChange = dp.prevClose ? dp.price - dp.prevClose : 0;
+          dayChangePct = dp.r1d != null ? dp.r1d : 0;
+          dataSource = 'yahoo-history';
+        }
 
         const data = window.lastMarketData || generateMockData();
         const vix = data.vix.current;
@@ -3811,9 +4197,16 @@
             ${sizeNote}
           </div>
         `;
+        try { await enrichAnalysis(symbol, currentPrice, dayChangePct); } catch (e) { console.warn('enrich failed:', e); }
       } catch (e) {
         console.error('Portfolio analysis error:', e);
-        alert('Failed to fetch live price. Check console.');
+        const resultDiv = document.getElementById('portfolioResult');
+        if (resultDiv) {
+          resultDiv.classList.remove('hidden');
+          resultDiv.innerHTML = `<div class="p-4 rounded-lg border border-red-200 bg-red-50 dark:bg-red-900/20 text-sm text-red-700 dark:text-red-300">
+            ⚠️ Couldn't fetch a real price for <b>${escHtml(symbol)}</b> from any live source right now.
+            We refuse to show a made-up number. Check the symbol spelling (NSE code, e.g. RELIANCE) or retry in a minute.</div>`;
+        }
       } finally {
         btn.disabled = false;
         btn.textContent = 'Fetch Live Price & Recommend';
@@ -5514,7 +5907,7 @@
       risk: () => { try { renderRiskQuestions(); } catch (e) {} },
       momentum: () => { try { renderTopPicks('short'); } catch (e) {} },
       watchlist: () => { try { refreshPersonalWatch(false); } catch (e) {} },
-      tracker: () => { try { renderPortfolio(); } catch (e) {} },
+      tracker: () => { try { renderPortfolio(); } catch (e) {} try { renderSavedChips(); } catch (e) {} },
       mf: () => { try { renderMFTable(); renderMFPlan(); fetchForex(); } catch (e) {} },
       reits: () => { try { renderReitSection(); } catch (e) {} },
       crypto: () => { try { renderCryptoExchangesTable(); } catch (e) {} try { fetchCryptoReturns(); } catch (e) {} try { fetchBinanceTickers(); } catch (e) {} },
@@ -5697,6 +6090,7 @@
           const q = await fetchLivePrice(s);
           if (q) price = q.price ?? q.current ?? q.close ?? null;
         } catch (e) {}
+        if (price == null) { try { price = await bestPriceFor(s); } catch (e) {} }
         if (price == null) price = currentPriceFor(s);
         const anchor = (findStock(s) || {}).basePrice || price || 100;
         const qualityMult = 0.85 + (prof.consistency / 100) * 0.25 + (prof.moat / 100) * 0.2;
