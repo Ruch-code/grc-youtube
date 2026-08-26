@@ -3808,6 +3808,79 @@
       return (bp < 500 || vol > 0.03) ? 10 : 20;
     }
 
+    // ══════════ INDEX TRAP WARNINGS — NIFTY 50 / BANK / 100 intraday behaviour ══════════
+    async function getIndexDayStats() {
+      const ck = _deepCache._IDX;
+      if (ck && Date.now() - ck.ts < 300000) return ck.data;
+      const grab = async s => {
+        try {
+          const r = await yahooChart(s, '1d', '5m');
+          const closes = ((r.indicators.quote[0] || {}).close || []).filter(v => v != null);
+          if (closes.length < 2) return null;
+          const meta = r.meta || {};
+          const open = meta.regularMarketOpen != null ? meta.regularMarketOpen : closes[0];
+          const price = meta.regularMarketPrice != null ? meta.regularMarketPrice : closes[closes.length - 1];
+          const prev = meta.chartPreviousClose != null ? meta.chartPreviousClose : meta.previousClose;
+          if (!prev) return null;
+          const hi = Math.max(...closes), lo = Math.min(...closes);
+          return { open, price, hi, lo, prev, openGap: (open / prev - 1) * 100, chg: (price / prev - 1) * 100, offHigh: (price / hi - 1) * 100, offLow: (price / lo - 1) * 100 };
+        } catch (e) { return null; }
+      };
+      const [n50, bnk, n100] = await Promise.all([grab('^NSEI'), grab('^NSEBANK'), grab('^CNX100')]);
+      const data = { n50, bnk, n100 };
+      _deepCache._IDX = { ts: Date.now(), data };
+      return data;
+    }
+
+    function idxStateOf(st) {
+      if (!st || st.chg == null) return { cls: 'flat', icon: '⚪', label: 'no data' };
+      const swing = Math.abs(st.chg - st.openGap);
+      if (st.openGap > 0.15 && st.chg < 0 && swing >= 0.25)
+        return { cls: 'bad', icon: '🚩', label: `GREEN→RED flip! Opened ${st.openGap >= 0 ? '+' : ''}${st.openGap.toFixed(2)}%, now ${st.chg.toFixed(2)}%`, note: 'Gap-up buyers trapped — sellers absorbing every rise. Fresh longs risky till it reclaims previous close.' };
+      if (st.openGap < -0.15 && st.chg > 0 && swing >= 0.25)
+        return { cls: 'good', icon: '✨', label: `RED→GREEN recovery (opened ${st.openGap.toFixed(2)}%)`, note: 'Dip buyers stepped in — short-covering bounce. Watch if it holds above previous close into close.' };
+      if (st.offHigh <= -0.8 && st.chg > 0)
+        return { cls: 'warn', icon: '⚠️', label: `Fading from day high (${st.offHigh.toFixed(2)}% off top)`, note: 'Profits being booked into strength — trail stops on fresh positions.' };
+      if (st.offLow >= 0.8 && st.chg < 0)
+        return { cls: 'warn', icon: '🔄', label: `Bouncing off day low (+${st.offLow.toFixed(2)}%)`, note: 'Oversold bounce in progress — can fade fast if volume dries up.' };
+      return { cls: st.chg >= 0 ? 'good' : 'flat', icon: st.chg >= 0 ? '🟢' : '🔻', label: 'steady so far' };
+    }
+
+    async function renderIndexWarnings() {
+      const page = document.getElementById('page-dashboard');
+      let host = document.getElementById('idxWarnBox');
+      if (page && !host) {
+        const pc = page.querySelector('.page-content');
+        if (!pc) return;
+        host = document.createElement('div');
+        host.id = 'idxWarnBox';
+        pc.insertBefore(host, pc.firstChild);
+      }
+      if (!host) return;
+      const d = await getIndexDayStats();
+      const entries = [['NIFTY 50', d.n50], ['NIFTY BANK', d.bnk], ['NIFTY 100', d.n100]]
+        .map(([n, st]) => [n, st, idxStateOf(st)]);
+      const bg = cls => cls === 'bad' ? 'rgba(220,38,38,.13)' : cls === 'warn' ? 'rgba(234,179,8,.16)' : cls === 'good' ? 'rgba(22,163,74,.11)' : 'rgba(120,120,130,.09)';
+      const notes = entries.filter(e => e[2].note);
+      host.innerHTML = `
+        <div class="card p-3 mb-4 pop-in" style="border-left:4px solid ${notes.some(e => e[2].cls === 'bad') ? 'var(--ruby)' : notes.length ? 'var(--citrine)' : 'var(--peridot)'};">
+          <div class="flex items-center justify-between mb-2">
+            <div class="font-bold text-sm">🚨 Index Pulse — intraday warnings <span class="text-[10px] font-normal text-gray-400">live 5-min candles</span></div>
+            <button onclick="renderIndexWarnings()" class="text-[11px] underline text-gray-400">refresh</button>
+          </div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            ${entries.map(([n, st, s]) => `
+              <div class="px-2.5 py-1.5 rounded-lg text-xs" style="background:${bg(s.cls)}">
+                <div class="flex items-center justify-between"><b>${n}</b><span class="font-mono font-bold ${st && st.chg >= 0 ? 'text-green-600' : 'text-red-500'}">${st && st.chg != null ? (st.chg >= 0 ? '+' : '') + st.chg.toFixed(2) + '%' : '—'}</span></div>
+                <div class="text-[10px] mt-0.5 opacity-80">${s.icon} ${s.label}</div>
+              </div>`).join('')}
+          </div>
+          ${notes.map(([n, , s]) => `<div class="mt-2 text-xs ${s.cls === 'bad' ? 'text-red-700 dark:text-red-300 font-semibold' : 'text-yellow-800 dark:text-yellow-300'}">${s.icon} <b>${n}:</b> ${s.note}</div>`).join('')}
+          ${notes.some(e => e[2].cls === 'bad') ? '<div class="mt-1.5 text-[10px] text-gray-500">Flip days often precede volatile sessions — size down, widen stops, and let the market prove direction by 10:30 AM.</div>' : ''}
+        </div>`;
+    }
+    setInterval(() => { try { if (document.getElementById('idxWarnBox')) renderIndexWarnings(); } catch (e) {} }, 300000);
+
     // ══════════ SAVED STOCKS — never retype again ══════════
     function getSaved() { try { return JSON.parse(localStorage.getItem('pma_saved') || '[]'); } catch (e) { return []; } }
     function toggleSaved(sym) {
@@ -5902,7 +5975,7 @@
 
     // ============ FLIPBOOK PAGE HOOKS ============
     const PAGE_HOOKS = {
-      dashboard: () => { try { updateUI(window.lastMarketData || getStableMockData()); } catch (e) {} },
+      dashboard: () => { try { updateUI(window.lastMarketData || getStableMockData()); } catch (e) {} try { renderIndexWarnings(); } catch (e) {} },
       geopolitics: () => { try { toggleGeoAuto(); } catch (e) {} try { updateGeoOutlook(); } catch (e) {} try { fetchMarketHeadlines(); } catch (e) {} },
       risk: () => { try { renderRiskQuestions(); } catch (e) {} },
       momentum: () => { try { renderTopPicks('short'); } catch (e) {} },
