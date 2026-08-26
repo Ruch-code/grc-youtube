@@ -6629,6 +6629,75 @@
             <p class="text-sm text-gray-700 dark:text-gray-200">${wealthNote}</p>
           </div>
         </div>`;
+      const epHost = document.createElement('div');
+      epHost.id = 'abcdExitPlan';
+      document.getElementById('abcdResult').appendChild(epHost);
+      renderAbcdExitPlan({ symbol, price, cat, fair, mos, p }).catch(e => console.warn('exit plan:', e));
+    }
+
+    async function renderAbcdExitPlan(o) {
+      const host = document.getElementById('abcdExitPlan');
+      if (!host) return;
+      host.innerHTML = '<div class="card p-3 mt-3 text-xs" style="color:var(--citrine-text)">⏳ Building your exit plan from live price structure…</div>';
+      let dd = null; try { dd = await fetchStockDeepData(o.symbol); } catch (e) {}
+      const price = o.price || 0;
+      const sup = dd && dd.support ? dd.support : null;
+      const res = dd && dd.resistance ? dd.resistance : null;
+      const rsi = dd && dd.rsi != null ? dd.rsi : null;
+      const dma200 = dd && dd.dma200 ? dd.dma200 : null;
+      const band = circuitBandPct(o.symbol);
+      let style, stop, t1, t2, rules;
+      if (o.cat === 'D') {
+        style = 'Survival first — treat this as a trade, not a marriage. Capital protection beats hope.';
+        stop = sup ? Math.min(sup * 0.985, price * 0.92) : price * 0.9;
+        t1 = res || o.fair; t2 = Math.max(t1 * 1.02, o.fair * 1.05);
+        rules = [
+          '🔴 Hard exit the day it closes below the stop — no averaging down on a D.',
+          '🎯 Sell at least half at Target 1; move stop to cost on the rest.',
+          '⏱ Time-stop: if it hasn\'t crossed entry +8% in ~6 weeks, the revival thesis is late — exit and redeploy.'
+        ];
+      } else if (o.cat === 'C') {
+        style = 'Cycle trade — buy fear early, ALWAYS sell into strength. Cycles give back gains fast.';
+        stop = sup && sup > price * 0.85 ? sup * 0.97 : price * 0.88;
+        t1 = Math.max(res || 0, o.fair) * 1.02; t2 = o.fair * 1.12;
+        rules = [
+          '📈 Stagger-sell: book 1/4th every 5% above fair value — tops only show in hindsight.',
+          `⚠️ Sell aggressively when RSI crosses 75 OR price runs ${(band - 4)}%+ in days (circuit-zone froth).`,
+          '🔻 Commodity/cycle turning (price of its input/output rolling over)? Exit regardless of P&L.'
+        ];
+      } else if (o.cat === 'B') {
+        style = 'Core holding — let quality compound, but protect the base. Exits are staged, not all-or-nothing.';
+        stop = price * 0.9; t1 = o.fair; t2 = o.fair * 1.1;
+        rules = [
+          '🎯 Book 1/3rd at fair value; trail the rest with a 10% trailing stop.',
+          '🛡️ After position is +12%, raise stop to your cost — from there it\'s a free ride.',
+          '📉 Reassess (not panic-sell) if it closes below 200-DMA for 3 sessions.'
+        ];
+      } else {
+        style = 'Compounder ride — exits here are for thesis breaks, not price noise. Volatility is the fee, not a signal.';
+        stop = Math.max(price * 0.85, sup ? sup * 0.96 : price * 0.85);
+        t1 = o.fair * 1.08; t2 = o.fair * 1.2;
+        rules = [
+          '🧭 Hold while earnings delivery continues — sell on TWO consecutive quarters of profit decline or promoter pledge/auditor red flags, not on −5% weeks.',
+          '🎯 If valuation stretches >20% past fair value with RSI >75, trim 20-30% into that greed.',
+          '🛡️ Catastrophe stop far below structure (' + stop.toFixed(0) + ') — sized so a full hit costs ≤2% of portfolio.'
+        ];
+      }
+      const pT1 = price && vol ? touchProb(price, t1, vol, 30) : null;
+      const pStop = price && vol ? touchProb(price, stop, vol, 30) : null;
+      const lvl = (lbl, v, col, prob) => `<div class="p-2 rounded-lg text-center" style="background:${col}14">
+        <div class="text-[10px] text-gray-500">${lbl}</div>
+        <div class="font-mono font-bold text-sm" style="color:${col}">₹${v.toLocaleString('en-IN', { maximumFractionDigits: 1 })}</div>
+        ${prob != null ? `<div class="text-[9px] text-gray-400">${prob}% odds /30d</div>` : ''}</div>`;
+      host.innerHTML = `
+      <div class="card card-ruby p-4 mt-3 pop-in">
+        <div class="font-bold text-sm mb-1">🚪 Exit &amp; Hold Plan — Category ${o.cat} <span class="text-[10px] font-normal text-gray-400">${dd ? '· levels from live structure ⚡' : '· model levels 🧮 (history feed unavailable)'}</span></div>
+        <div class="text-xs mb-2" style="color:var(--citrine-text)">${style}</div>
+        ${price ? `<div class="grid grid-cols-3 gap-2 mb-3">${lvl('Hard stop / exit', stop, '#dc2626', pStop)}${lvl('Hold zone now', price, '#64748b', null)}${lvl('Book profit ≥', t1, '#16a34a', pT1)}</div>` : ''}
+        <div class="space-y-1.5 text-xs text-gray-700 dark:text-gray-200">${rules.map(r => `<div>${r}</div>`).join('')}</div>
+        ${dma200 && price ? `<div class="mt-2 text-[11px] ${price >= dma200 ? 'text-green-700 dark:text-green-400' : 'text-red-600 dark:text-red-400'}">${price >= dma200 ? '✅ Above 200-DMA — trend supports holding.' : '❌ Below 200-DMA — hold only with reduced size; reclaim strengthens the case.'}</div>` : ''}
+        <div class="text-[10px] text-gray-400 mt-2">Stops sit outside one normal day's range (assumed ${band}% band) so a single wick doesn't knock you out. Odds are σ-model estimates from recent volatility — probabilities, not promises.</div>
+      </div>`;
     }
 
     function askAbcdFromPortfolio() {
