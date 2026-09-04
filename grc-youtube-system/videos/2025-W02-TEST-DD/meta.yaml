@@ -1,0 +1,31 @@
+title: "Why ITGC Access Controls Keep Failing (Real Examples)"
+description: |
+  In this deep dive, I walk through 3 real ITGC access control failures I've seen across 5 clients this year — and the exact remediation template I give every audit team.
+
+  📥 DOWNLOAD THE TEMPLATE: https://gumroad.com/l/itgc-access-template
+
+  CHAPTERS:
+  0:00 Cold Open: The $2M Finding
+  0:45 Why This Matters Now (SEC Enforcement 2024)
+  2:15 Observation 1: Orphaned Privileged Accounts
+  4:30 Observation 2: Termination Lag > 30 Days
+  6:45 Observation 3: Quarterly Reviews Only on Paper
+  9:00 The Framework: Test Steps + Evidence Matrix
+  10:30 Common Mistakes (Don't Do This)
+  11:15 Live Demo: Filling the Remediation Template
+  12:30 CTA + Next Week Teaser
+
+  CONNECT:
+  LinkedIn: https://linkedin.com/in/yourprofile
+  Newsletter: https://grcauditpro.substack.com
+tags: ["ITGC", "SOX", "IT Audit", "Access Controls", "GRC", "Compliance", "Internal Audit"]
+category: 27
+playlist: "PLxxx_ITGC_Deep_Dives"
+publish_at: "2025-01-14T14:00:00Z"
+privacy_status: "private"
+made_for_kids: false
+default_language: "en"
+default_audio_language: "en"
+thumbnail: "thumb.png"
+video_file: "final.mp4"
+location: "Remote / Client Site (Redacted)"
