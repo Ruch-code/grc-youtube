@@ -1,0 +1,161 @@
+name: Deploy to YouTube
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'videos/**/meta.yaml'
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: 'Video folder name (e.g. 2025-W01-ITGC-AC-DD)'
+        required: true
+      force:
+        description: 'Force re-upload even if already deployed'
+        type: boolean
+        default: false
+
+env:
+  GCS_BUCKET: ${{ secrets.GCS_BUCKET }}
+  YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+  YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+  YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+
+jobs:
+  detect-changes:
+    name: Detect Changed Videos
+    runs-on: ubuntu-latest
+    outputs:
+      video_ids: ${{ steps.detect.outputs.video_ids }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2  # Need previous commit for diff
+      
+      - name: Detect changed meta.yaml files
+        id: detect
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VIDEO_ID="${{ github.event.inputs.video_id }}"
+            echo "video_ids=[\"$VIDEO_ID\"]" >> $GITHUB_OUTPUT
+          else
+            # Get changed files between HEAD and previous commit
+            CHANGED=$(git diff --name-only HEAD~1 HEAD | grep 'videos/.*/meta\.yaml$' || true)
+            if [[ -z "$CHANGED" ]]; then
+              echo "video_ids=[]" >> $GITHUB_OUTPUT
+            else
+              # Extract video folder names
+              VIDEOS=$(echo "$CHANGED" | sed 's|videos/\([^/]*\)/meta\.yaml|\1|' | sort -u | jq -R . | jq -s .)
+              echo "video_ids=$VIDEOS" >> $GITHUB_OUTPUT
+            fi
+          fi
+
+  deploy:
+    name: Deploy Video to YouTube
+    needs: detect-changes
+    if: needs.detect-changes.outputs.video_ids != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        video_id: ${{ fromJson(needs.detect-changes.outputs.video_ids) }}
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+      
+      - name: Install dependencies
+        run: |
+          pip install google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client pyyaml tqdm google-cloud-storage
+      
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCS_SA_KEY }}
+      
+      - name: Download video assets from GCS
+        id: download
+        run: |
+          python scripts/download_from_gcs.py \
+            --bucket "${{ env.GCS_BUCKET }}" \
+            --prefix "videos/${{ matrix.video_id }}/" \
+            --dest "./downloads/${{ matrix.video_id }}"
+      
+      - name: Load metadata
+        id: meta
+        run: |
+          python -c "
+          import yaml, json, sys
+          with open('./downloads/${{ matrix.video_id }}/meta.yaml') as f:
+              meta = yaml.safe_load(f)
+          print('meta=' + json.dumps(meta))
+          " >> $GITHUB_OUTPUT
+      
+      - name: Validate metadata
+        run: |
+          python scripts/validate_meta.py \
+            --meta "./downloads/${{ matrix.video_id }}/meta.yaml" \
+            --video "./downloads/${{ matrix.video_id }}/${{ fromJson(steps.meta.outputs.meta).video_file }}"
+      
+      - name: Upload to YouTube
+        id: upload
+        run: |
+          python scripts/upload_to_youtube.py \
+            --meta "./downloads/${{ matrix.video_id }}/meta.yaml" \
+            --video "./downloads/${{ matrix.video_id }}/${{ fromJson(steps.meta.outputs.meta).video_file }}" \
+            --thumb "./downloads/${{ matrix.video_id }}/${{ fromJson(steps.meta.outputs.meta).thumbnail || 'thumb.png' }}"
+      
+      - name: Update Notion status → Published
+        if: success()
+        run: |
+          python scripts/update_notion.py \
+            --video-id "${{ matrix.video_id }}" \
+            --status "Published" \
+            --youtube-id "${{ steps.upload.outputs.youtube_id }}" \
+            --youtube-url "https://youtu.be/${{ steps.upload.outputs.youtube_id }}"
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_CONTENT_DB: ${{ secrets.NOTION_CONTENT_DB }}
+      
+      - name: Create Shorts clips (trigger separate workflow)
+        run: |
+          gh workflow run create-shorts.yml -f video_id="${{ matrix.video_id }}" -f youtube_id="${{ steps.upload.outputs.youtube_id }}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  notify:
+    name: Notify on Completion
+    needs: deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Slack notification
+        if: always()
+        uses: slackapi/slack-github-action@v1.26.0
+        with:
+          payload: |
+            {
+              "text": "YouTube Deploy ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "section",
+                  "text": {
+                    "type": "mrkdwn",
+                    "text": "*YouTube Deploy ${{ job.status }}*"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {"type": "mrkdwn", "text": "*Videos:* ${{ needs.detect-changes.outputs.video_ids }}"},
+                    {"type": "mrkdwn", "text": "*Commit:* ${{ github.sha }}"},
+                    {"type": "mrkdwn", "text": "*Actor:* ${{ github.actor }}"}
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}

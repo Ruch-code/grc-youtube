@@ -1,0 +1,119 @@
+name: Create Shorts from Long-form
+
+on:
+  workflow_dispatch:
+    inputs:
+      video_id:
+        description: 'Parent video folder (e.g. 2025-W01-ITGC-AC-DD)'
+        required: true
+      youtube_id:
+        description: 'YouTube video ID (e.g. dQw4w9WgXcQ)'
+        required: true
+
+jobs:
+  create-shorts:
+    name: Create & Upload Shorts
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        clip: [1, 2, 3]
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Setup Python + FFmpeg
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+        run: |
+          sudo apt-get update && sudo apt-get install -y ffmpeg
+          pip install yt-dlp google-auth google-auth-oauthlib google-auth-httplib2 google-api-python-client pyyaml tqdm
+      
+      - name: Authenticate Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCS_SA_KEY }}
+      
+      - name: Download parent video from YouTube
+        run: |
+          yt-dlp -f "bestvideo[height<=1080]+bestaudio/best[height<=1080]" \
+            -o "parent.mp4" \
+            "https://youtu.be/${{ github.event.inputs.youtube_id }}"
+      
+      - name: Load clip timestamps from meta.yaml
+        id: timestamps
+        run: |
+          python -c "
+          import yaml, json, sys
+          with open('videos/${{ github.event.inputs.video_id }}/meta.yaml') as f:
+              meta = yaml.safe_load(f)
+          
+          # Define clip timestamps (customize per video type)
+          clips = {
+              'deep_dive': [
+                  {'start': '0:00', 'end': '1:30', 'title': 'Cold Open: The \$2M Finding'},
+                  {'start': '5:30', 'end': '6:15', 'title': 'The One Test Step Everyone Misses'},
+                  {'start': '11:15', 'end': '12:00', 'title': 'Template Demo in 45 Seconds'},
+              ],
+              'quick_hit': [
+                  {'start': '0:00', 'end': '1:00', 'title': '3 TPRM Red Flags in 60 Seconds'},
+                  {'start': '1:00', 'end': '1:45', 'title': 'Flag 2: Carve-Out Method = Inquiry'},
+                  {'start': '2:30', 'end': '2:50', 'title': 'One-Line Questionnaire Fix'},
+              ],
+          }
+          
+          # Detect type from video_id
+          vtype = 'quick_hit' if 'QH' in '${{ github.event.inputs.video_id }}' else 'deep_dive'
+          clip = clips[vtype][${{ matrix.clip }} - 1]
+          
+          print(f'clip_title={clip[\"title\"]}')
+          print(f'start={clip[\"start\"]}')
+          print(f'end={clip[\"end\"]}')
+          print(f'vtype={vtype}')
+          " >> $GITHUB_OUTPUT
+      
+      - name: Extract clip with FFmpeg
+        run: |
+          python scripts/extract_clip.py \
+            --input parent.mp4 \
+            --output "short_${{ matrix.clip }}.mp4" \
+            --start "${{ steps.timestamps.outputs.start }}" \
+            --end "${{ steps.timestamps.outputs.end }}" \
+            --vertical
+      
+      - name: Generate Short metadata
+        run: |
+          python -c "
+          import json
+          meta = {
+              'title': '${{ steps.timestamps.outputs.clip_title }} #Shorts',
+              'description': 'Full video: https://youtu.be/${{ github.event.inputs.youtube_id }}\n\n#GRC #ITAudit #TPRM #SOX #Shorts',
+              'tags': ['GRC', 'IT Audit', 'Shorts', '${{ steps.timestamps.outputs.vtype }}'],
+              'category': 27,
+              'privacy_status': 'public',
+              'made_for_kids': False,
+          }
+          with open(f'short_{${{ matrix.clip }}}_meta.json', 'w') as f:
+              json.dump(meta, f)
+          "
+      
+      - name: Upload Short to YouTube
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+        run: |
+          python scripts/upload_short.py \
+            --meta "short_${{ matrix.clip }}_meta.json" \
+            --video "short_${{ matrix.clip }}.mp4"
+      
+      - name: Update Notion Shorts Pipeline
+        run: |
+          python scripts/update_notion_shorts.py \
+            --parent-video "${{ github.event.inputs.video_id }}" \
+            --clip ${{ matrix.clip }} \
+            --status "Posted" \
+            --youtube-id "${{ steps.upload.outputs.youtube_id }}"
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_SHORTS_DB: ${{ secrets.NOTION_SHORTS_DB }}
